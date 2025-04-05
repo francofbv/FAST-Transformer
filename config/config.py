@@ -8,5 +8,7 @@ class Config:
     BATCH_SIZE = 32
     NUM_EPOCHS = 10
     LEARNING_RATE = 1e-4
+    TAU = 1e-1
+    PENALIZE_WEIGHTS = False 
 
 config = Config()
