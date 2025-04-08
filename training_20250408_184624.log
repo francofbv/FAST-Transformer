@@ -1,0 +1,82 @@
+2025-04-08 18:46:24,803 - INFO - Using Fast-NN Transformer model
+2025-04-08 18:46:24,804 - INFO - Using device: cpu
+2025-04-08 18:46:25,399 - INFO - Using device: cpu
+2025-04-08 18:46:25,399 - INFO - 
+Epoch 1/10
+2025-04-08 18:46:25,400 - INFO - Current learning rate: 0.000100
+2025-04-08 18:46:26,278 - INFO - Train Loss: 1.0990
+2025-04-08 18:46:26,278 - INFO - Train Reg Loss: 1.5659
+2025-04-08 18:46:26,278 - INFO - Test Loss: 0.3742
+2025-04-08 18:46:26,278 - INFO - Test Reg Loss: 1.5644
+2025-04-08 18:46:26,290 - INFO - Saved new best model!
+2025-04-08 18:46:26,290 - INFO - 
+Epoch 2/10
+2025-04-08 18:46:26,290 - INFO - Current learning rate: 0.000100
+2025-04-08 18:46:27,096 - INFO - Train Loss: 0.0778
+2025-04-08 18:46:27,096 - INFO - Train Reg Loss: 1.7046
+2025-04-08 18:46:27,097 - INFO - Test Loss: 0.1566
+2025-04-08 18:46:27,097 - INFO - Test Reg Loss: 1.7026
+2025-04-08 18:46:27,112 - INFO - Saved new best model!
+2025-04-08 18:46:27,112 - INFO - 
+Epoch 3/10
+2025-04-08 18:46:27,112 - INFO - Current learning rate: 0.000100
+2025-04-08 18:46:27,910 - INFO - Train Loss: 0.0661
+2025-04-08 18:46:27,910 - INFO - Train Reg Loss: 1.8408
+2025-04-08 18:46:27,910 - INFO - Test Loss: 0.0903
+2025-04-08 18:46:27,910 - INFO - Test Reg Loss: 1.8387
+2025-04-08 18:46:27,931 - INFO - Saved new best model!
+2025-04-08 18:46:27,931 - INFO - 
+Epoch 4/10
+2025-04-08 18:46:27,931 - INFO - Current learning rate: 0.000100
+2025-04-08 18:46:28,730 - INFO - Train Loss: 0.0275
+2025-04-08 18:46:28,730 - INFO - Train Reg Loss: 1.9834
+2025-04-08 18:46:28,730 - INFO - Test Loss: 0.0902
+2025-04-08 18:46:28,730 - INFO - Test Reg Loss: 1.9810
+2025-04-08 18:46:28,752 - INFO - Saved new best model!
+2025-04-08 18:46:28,752 - INFO - 
+Epoch 5/10
+2025-04-08 18:46:28,752 - INFO - Current learning rate: 0.000100
+2025-04-08 18:46:29,555 - INFO - Train Loss: 0.0248
+2025-04-08 18:46:29,555 - INFO - Train Reg Loss: 2.1380
+2025-04-08 18:46:29,555 - INFO - Test Loss: 0.0923
+2025-04-08 18:46:29,555 - INFO - Test Reg Loss: 2.1354
+2025-04-08 18:46:29,555 - INFO - 
+Epoch 6/10
+2025-04-08 18:46:29,555 - INFO - Current learning rate: 0.000100
+2025-04-08 18:46:30,353 - INFO - Train Loss: 0.0204
+2025-04-08 18:46:30,353 - INFO - Train Reg Loss: 2.3197
+2025-04-08 18:46:30,353 - INFO - Test Loss: 0.0890
+2025-04-08 18:46:30,353 - INFO - Test Reg Loss: 2.3165
+2025-04-08 18:46:30,375 - INFO - Saved new best model!
+2025-04-08 18:46:30,375 - INFO - 
+Epoch 7/10
+2025-04-08 18:46:30,375 - INFO - Current learning rate: 0.000099
+2025-04-08 18:46:31,166 - INFO - Train Loss: 0.0173
+2025-04-08 18:46:31,166 - INFO - Train Reg Loss: 2.5218
+2025-04-08 18:46:31,166 - INFO - Test Loss: 0.0809
+2025-04-08 18:46:31,166 - INFO - Test Reg Loss: 2.5183
+2025-04-08 18:46:31,185 - INFO - Saved new best model!
+2025-04-08 18:46:31,185 - INFO - 
+Epoch 8/10
+2025-04-08 18:46:31,185 - INFO - Current learning rate: 0.000099
+2025-04-08 18:46:31,974 - INFO - Train Loss: 0.0182
+2025-04-08 18:46:31,974 - INFO - Train Reg Loss: 2.7181
+2025-04-08 18:46:31,974 - INFO - Test Loss: 0.0827
+2025-04-08 18:46:31,974 - INFO - Test Reg Loss: 2.7146
+2025-04-08 18:46:31,974 - INFO - 
+Epoch 9/10
+2025-04-08 18:46:31,974 - INFO - Current learning rate: 0.000099
+2025-04-08 18:46:32,764 - INFO - Train Loss: 0.0204
+2025-04-08 18:46:32,764 - INFO - Train Reg Loss: 2.8957
+2025-04-08 18:46:32,764 - INFO - Test Loss: 0.0858
+2025-04-08 18:46:32,764 - INFO - Test Reg Loss: 2.8925
+2025-04-08 18:46:32,764 - INFO - 
+Epoch 10/10
+2025-04-08 18:46:32,764 - INFO - Current learning rate: 0.000099
+2025-04-08 18:46:33,561 - INFO - Train Loss: 0.0165
+2025-04-08 18:46:33,561 - INFO - Train Reg Loss: 3.0475
+2025-04-08 18:46:33,561 - INFO - Test Loss: 0.0873
+2025-04-08 18:46:33,561 - INFO - Test Reg Loss: 3.0427
+2025-04-08 18:46:33,573 - INFO - 
+Evaluating model on test set...
+2025-04-08 18:46:49,855 - INFO - Final Metrics - MAE: 2.3637, RMSE: 2.7750, R²: 0.7786

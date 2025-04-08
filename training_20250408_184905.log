@@ -1,0 +1,7 @@
+2025-04-08 18:49:05,766 - INFO - Using Fast-NN Transformer model
+2025-04-08 18:49:05,766 - INFO - Using device: cpu
+2025-04-08 18:49:06,344 - INFO - Using device: cpu
+2025-04-08 18:49:06,344 - INFO - 
+Epoch 1/10
+2025-04-08 18:49:06,344 - INFO - Current learning rate: 0.000100
+2025-04-08 18:49:06,413 - ERROR - Error during training: 'FastNNTransformer' object has no attribute 'regularization_loss'

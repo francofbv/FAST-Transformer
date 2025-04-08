@@ -6,13 +6,12 @@ from .fast_nn import FactorAugmentedSparseThroughput
 from .transformer import TimeSeriesTransformer
 
 class FastNNTransformer(nn.Module):
-    def __init__(self, input_dim=1, d_model=config.D_MODEL, nhead=config.NHEAD, num_layers=config.NUM_LAYERS, r_bar=config.R_BAR, depth=config.DEPTH, width=config.WIDTH, dp_mat=None, sparsity=None, rs_mat=None):
+    def __init__(self, input_dim=1, d_model=config.D_MODEL, nhead=config.NHEAD, num_layers=config.NUM_LAYERS, r_bar=config.R_BAR, width=config.WIDTH, dp_mat=None, sparsity=None, rs_mat=None):
         super().__init__()
         
         self.fast_nn = FactorAugmentedSparseThroughput(
             input_dim=input_dim,
             r_bar=r_bar,
-            depth=depth,
             width=width,
             dp_mat=dp_mat,
             sparsity=sparsity,
@@ -36,6 +35,13 @@ class FastNNTransformer(nn.Module):
         output = self.transformer(combined)
 
         return output
+    
+    def regularization_loss(self, model, tau, penalize_weights=config.PENALIZE_WEIGHTS):
+        l1_penalty = torch.abs(self.fast_nn.variable_selection.weight) / tau # get the l1 penalty
+        clipped_l1 = torch.clamp(l1_penalty, max=1.0) # caps penalty values at 1.0
+
+        if penalize_weights:
+            for name, param in model.named_parameters(): # this is probably really bad for transformer lol
+                if len(param.shape) > 1: clipped_l1 += 0.001 * torch.sum(torch.abs(param))
         
-    def regularization_loss(self, tau):
-        return self.fast_nn.regularization_loss(self.transformer, tau)
+        return torch.sum(clipped_l1) # return the sum of the clipped l1 penalty (add this to main loss)
