@@ -6,7 +6,7 @@ from .fast_nn import FactorAugmentedSparseThroughput
 from .transformer import TimeSeriesTransformer
 
 class FastNNTransformer(nn.Module):
-    def __init__(self, input_dim=1, d_model=config.D_MODEL, nhead=config.NHEAD, num_layers=config.NUM_LAYERS, r_bar=config.R_BAR, width=config.WIDTH, dp_mat=None, sparsity=None, rs_mat=None):
+    def __init__(self, dp_mat, input_dim=config.INPUT_DIM, d_model=config.D_MODEL, nhead=config.NHEAD, num_layers=config.NUM_LAYERS, r_bar=config.R_BAR, width=config.WIDTH, sparsity=None, rs_mat=None):
         super().__init__()
         
         self.fast_nn = FactorAugmentedSparseThroughput(
@@ -19,7 +19,8 @@ class FastNNTransformer(nn.Module):
         )
 
         self.transformer = TimeSeriesTransformer(
-            input_dim=r_bar + width,
+            #input_dim=r_bar + width,
+            input_dim=width + input_dim,
             d_model=d_model,
             nhead=nhead,
             num_layers=num_layers
@@ -29,6 +30,9 @@ class FastNNTransformer(nn.Module):
 
         # fast_nn
         x1, x2 = self.fast_nn(x, is_training)
+        #print(x1.shape)
+        #print(x2.shape)#
+        #exit()
         combined = torch.cat([x1, x2], dim=-1)
         
         # transformer

@@ -1,0 +1,6 @@
+2025-04-09 02:09:23,034 - INFO - Using Fast-NN Transformer model
+2025-04-09 02:09:23,035 - INFO - Using device: cpu
+2025-04-09 02:09:23,485 - INFO - Using device: cpu
+2025-04-09 02:09:23,485 - INFO - 
+Epoch 1/10
+2025-04-09 02:09:23,485 - INFO - Current learning rate: 0.000100

@@ -1,0 +1,7 @@
+2025-04-09 12:47:19,090 - INFO - Using Fast-NN Transformer model
+2025-04-09 12:47:19,091 - INFO - Using device: cpu
+2025-04-09 12:47:19,507 - INFO - Using device: cpu
+2025-04-09 12:47:19,508 - INFO - 
+Epoch 1/10
+2025-04-09 12:47:19,508 - INFO - Current learning rate: 0.000100
+2025-04-09 12:47:19,742 - ERROR - Error during training: The size of tensor a (32) must match the size of tensor b (2) at non-singleton dimension 1

@@ -1,0 +1,7 @@
+2025-04-08 20:06:27,897 - INFO - Using standard Transformer model
+2025-04-08 20:06:27,899 - INFO - Using device: cpu
+2025-04-08 20:06:28,507 - INFO - Using device: cpu
+2025-04-08 20:06:28,507 - INFO - 
+Epoch 1/10
+2025-04-08 20:06:28,507 - INFO - Current learning rate: 0.000100
+2025-04-08 20:06:29,328 - ERROR - Error during training: TimeSeriesTransformer.forward() got an unexpected keyword argument 'is_training'

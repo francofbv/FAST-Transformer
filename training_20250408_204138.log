@@ -1,0 +1,58 @@
+2025-04-08 20:41:38,466 - INFO - Using standard Transformer model
+2025-04-08 20:41:38,466 - INFO - Using device: cpu
+2025-04-08 20:41:39,046 - INFO - Using device: cpu
+2025-04-08 20:41:39,046 - INFO - 
+Epoch 1/10
+2025-04-08 20:41:39,046 - INFO - Current learning rate: 0.000100
+2025-04-08 20:41:49,992 - INFO - Train Loss: 0.1085
+2025-04-08 20:41:49,992 - INFO - Test Loss: 0.0481
+2025-04-08 20:41:50,010 - INFO - Saved new best model!
+2025-04-08 20:41:50,010 - INFO - 
+Epoch 2/10
+2025-04-08 20:41:50,010 - INFO - Current learning rate: 0.000100
+2025-04-08 20:42:01,323 - INFO - Train Loss: 0.0214
+2025-04-08 20:42:01,323 - INFO - Test Loss: 0.0166
+2025-04-08 20:42:01,351 - INFO - Saved new best model!
+2025-04-08 20:42:01,351 - INFO - 
+Epoch 3/10
+2025-04-08 20:42:01,351 - INFO - Current learning rate: 0.000100
+2025-04-08 20:42:12,729 - INFO - Train Loss: 0.0145
+2025-04-08 20:42:12,729 - INFO - Test Loss: 0.0134
+2025-04-08 20:42:12,753 - INFO - Saved new best model!
+2025-04-08 20:42:12,753 - INFO - 
+Epoch 4/10
+2025-04-08 20:42:12,753 - INFO - Current learning rate: 0.000100
+2025-04-08 20:42:24,167 - INFO - Train Loss: 0.0132
+2025-04-08 20:42:24,167 - INFO - Test Loss: 0.0156
+2025-04-08 20:42:24,167 - INFO - 
+Epoch 5/10
+2025-04-08 20:42:24,167 - INFO - Current learning rate: 0.000100
+2025-04-08 20:42:35,609 - INFO - Train Loss: 0.0142
+2025-04-08 20:42:35,610 - INFO - Test Loss: 0.0286
+2025-04-08 20:42:35,610 - INFO - 
+Epoch 6/10
+2025-04-08 20:42:35,610 - INFO - Current learning rate: 0.000100
+2025-04-08 20:42:47,060 - INFO - Train Loss: 0.0123
+2025-04-08 20:42:47,060 - INFO - Test Loss: 0.0152
+2025-04-08 20:42:47,060 - INFO - 
+Epoch 7/10
+2025-04-08 20:42:47,060 - INFO - Current learning rate: 0.000099
+2025-04-08 20:42:58,785 - INFO - Train Loss: 0.0148
+2025-04-08 20:42:58,786 - INFO - Test Loss: 0.0156
+2025-04-08 20:42:58,786 - INFO - 
+Epoch 8/10
+2025-04-08 20:42:58,786 - INFO - Current learning rate: 0.000099
+2025-04-08 20:43:10,436 - INFO - Train Loss: 0.0117
+2025-04-08 20:43:10,436 - INFO - Test Loss: 0.0141
+2025-04-08 20:43:10,436 - INFO - 
+Epoch 9/10
+2025-04-08 20:43:10,436 - INFO - Current learning rate: 0.000099
+2025-04-08 20:43:21,988 - INFO - Train Loss: 0.0097
+2025-04-08 20:43:21,989 - INFO - Test Loss: 0.0221
+2025-04-08 20:43:21,989 - INFO - 
+Epoch 10/10
+2025-04-08 20:43:21,989 - INFO - Current learning rate: 0.000099
+2025-04-08 20:43:34,127 - INFO - Train Loss: 0.0102
+2025-04-08 20:43:34,127 - INFO - Test Loss: 0.0145
+2025-04-08 20:43:34,153 - INFO - 
+Evaluating model on test set...

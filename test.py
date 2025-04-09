@@ -8,6 +8,7 @@ from utils.dataloader import TimeSeriesDataset
 from torch.utils.data import DataLoader
 from models.fast_nn import FactorAugmentedSparseThroughput
 from config.config import config
+import pandas as pd
 
 def main():
     # Get some sample data (either real or dummy)
@@ -24,8 +25,22 @@ def main():
         print("Using dummy data instead")
         close_prices = np.random.randn(100, 1) * 10 + 100  # Random prices around 100
 
+    # Calculate returns
+    returns = np.diff(close_prices, axis=0) / close_prices[:-1]
+
+    # Calculate rolling volatility (e.g., using a 20-day window)
+    window = 20
+    volatility = pd.Series(returns.flatten()).rolling(window=window).std().values
+
+    # Reshape volatility to match the shape of close_prices
+    volatility = volatility.reshape(-1, 1)
+
+    # Ensure that the lengths match by trimming close_prices
+    # Since volatility has window-1 fewer elements due to the rolling window, we need to trim close_prices accordingly
+    combined_data = np.hstack((close_prices[window:], volatility[window-1:]))
+
     # Create dataset and dataloader
-    dataset = TimeSeriesDataset(close_prices)
+    dataset = TimeSeriesDataset(combined_data)
     dataloader = DataLoader(dataset, batch_size=config.BATCH_SIZE, shuffle=False)
 
     # Create random matrix for diversified projection
@@ -36,7 +51,7 @@ def main():
 
     # Initialize Fast-NN model
     model = FactorAugmentedSparseThroughput(
-        input_dim=1,  # Single feature (close price)
+        input_dim=config.INPUT_DIM,
         r_bar=config.R_BAR,
         width=config.WIDTH,
         dp_mat=dp_mat,
