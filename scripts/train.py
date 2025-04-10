@@ -248,9 +248,7 @@ torch.save({
     'scaler': train_dataset.scaler
 }, 'checkpoints/final_model.pth')
 
-'''
 # Evaluate the model
 logging.info("\nEvaluating model on test set...")
 mae, rmse, r2 = evaluate(model, test_loader, train_dataset.scaler)
 logging.info(f"Final Metrics - MAE: {mae:.4f}, RMSE: {rmse:.4f}, R²: {r2:.4f}")
-'''

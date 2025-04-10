@@ -7,7 +7,7 @@ class Config:
     NHEAD = 8     # Number of attention heads
     NUM_LAYERS = 4  # Number of transformer layers
     BATCH_SIZE = 32
-    NUM_EPOCHS = 1000
+    NUM_EPOCHS = 5
     LEARNING_RATE = 1e-4
     HP_TAU = 1
     R_BAR = 1

@@ -20,9 +20,16 @@ def evaluate(model, test_loader, scaler):
     all_preds = np.array(all_preds).reshape(-1, 1)
     all_targets = np.array(all_targets).reshape(-1, 1)
 
+    # Create dummy volatility column (zeros) to match original data shape
+    dummy_vol = np.zeros_like(all_preds)
+    
+    # Add dummy volatility column to match scaler's expected shape
+    preds_with_dummy = np.hstack([all_preds, dummy_vol])
+    targets_with_dummy = np.hstack([all_targets, dummy_vol])
+
     # Inverse transform predictions and targets
-    inv_preds = scaler.inverse_transform(all_preds)
-    inv_targets = scaler.inverse_transform(all_targets)
+    inv_preds = scaler.inverse_transform(preds_with_dummy)[:, 0].reshape(-1, 1)  # Take only first column (price)
+    inv_targets = scaler.inverse_transform(targets_with_dummy)[:, 0].reshape(-1, 1)  # Take only first column (price)
 
     # Evaluation metrics
     mae = mean_absolute_error(inv_targets, inv_preds)

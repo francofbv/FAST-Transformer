@@ -1,0 +1,14 @@
+2025-04-09 21:13:43,904 - INFO - Using Fast-NN Transformer model
+2025-04-09 21:13:43,905 - INFO - Using device: cpu
+2025-04-09 21:13:44,551 - INFO - Using device: cpu
+2025-04-09 21:13:44,551 - INFO - 
+Epoch 1/10
+2025-04-09 21:13:44,551 - INFO - Current learning rate: 0.000100
+2025-04-09 21:13:59,947 - INFO - Train Loss: 0.2251
+2025-04-09 21:13:59,948 - INFO - Train Reg Loss: 105.7440
+2025-04-09 21:13:59,948 - INFO - Test Loss: 0.0891
+2025-04-09 21:13:59,948 - INFO - Test Reg Loss: 2054.0883
+2025-04-09 21:13:59,962 - INFO - Saved new best model!
+2025-04-09 21:13:59,962 - INFO - 
+Epoch 2/10
+2025-04-09 21:13:59,962 - INFO - Current learning rate: 0.000100
