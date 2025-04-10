@@ -1,5 +1,8 @@
 # Model configuration
 class Config:
+    '''
+    Configuration for the model
+    '''
     # Model parameters
     INPUT_DIM = 2
     SEQ_LEN = 120  # Sequence length for the transformer model

@@ -5,6 +5,12 @@ from config.config import config
 from sklearn.preprocessing import StandardScaler
 
 def make_sequences(data, seq_len):
+    '''
+    Make sequences of data via sliding window
+
+    data: data to make sequences of
+    seq_len: length of the sequences
+    ''' 
     X, y = [], []
     for i in range(len(data) - seq_len):
         X.append(data[i:i+seq_len])
@@ -12,6 +18,12 @@ def make_sequences(data, seq_len):
     return np.array(X), np.array(y)
 
 class TimeSeriesDataset(Dataset):
+    '''
+    Time series dataset
+
+    data: data to make sequences of
+    seq_len: length of the sequences
+    '''
     def __init__(self, data, seq_len=config.SEQ_LEN):
         self.scaler = StandardScaler()
         self.normalized_data = self.scaler.fit_transform(data)

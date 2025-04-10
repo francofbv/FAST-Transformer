@@ -1,61 +1,51 @@
 import torch 
 import numpy as np
-import matplotlib.pyplot as plt
 from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score
 
 def evaluate(model, test_loader, scaler):
+    '''
+    Evaluate the model on the test set
+
+    model: model to evaluate
+    test_loader: test data loader
+    scaler: scaler to inverse transform the predictions and targets
+    '''
+
     model.eval()
-    device = next(model.parameters()).device  # Get the device the model is on
+    device = next(model.parameters()).device  
     all_preds = []
     all_targets = []
 
     with torch.no_grad():
         for X_batch, y_batch in test_loader:
-            # Move batch to same device as model
             X_batch = X_batch.to(device)
             y_batch = y_batch.to(device)
             
-            preds = model(X_batch).squeeze()
+            preds = model(X_batch).squeeze() # squeeze to remove singleton dimension
             y_true = y_batch.squeeze()
             
-            # Move predictions and targets back to CPU before converting to numpy
-            all_preds.extend(preds.cpu().numpy())
+            all_preds.extend(preds.cpu().numpy()) # move to cpu and convert to numpy
             all_targets.extend(y_true.cpu().numpy())
             
-    # Convert to numpy arrays and reshape
-    all_preds = np.array(all_preds).reshape(-1, 1)
+    all_preds = np.array(all_preds).reshape(-1, 1) # reshape to 2D array
     all_targets = np.array(all_targets).reshape(-1, 1)
 
-    # Create dummy volatility column (zeros) to match original data shape
-    dummy_vol = np.zeros_like(all_preds)
+    dummy_vol = np.zeros_like(all_preds) # dummy vector
     
-    # Add dummy volatility column to match scaler's expected shape
-    preds_with_dummy = np.hstack([all_preds, dummy_vol])
+    preds_with_dummy = np.hstack([all_preds, dummy_vol]) # reconstruct to original shape to make compatible with scaler
     targets_with_dummy = np.hstack([all_targets, dummy_vol])
 
-    # Inverse transform predictions and targets
-    inv_preds = scaler.inverse_transform(preds_with_dummy)[:, 0].reshape(-1, 1)
+    inv_preds = scaler.inverse_transform(preds_with_dummy)[:, 0].reshape(-1, 1) # convert transformed data to original scale
     inv_targets = scaler.inverse_transform(targets_with_dummy)[:, 0].reshape(-1, 1)
 
-    # Evaluation metrics
     mae = mean_absolute_error(inv_targets, inv_preds)
     rmse = mean_squared_error(inv_targets, inv_preds, squared=False)
     r2 = r2_score(inv_targets, inv_preds)
-
+    
+    # compute metrics
     print(f"MAE:  {mae:.4f}")
     print(f"RMSE: {rmse:.4f}")
     print(f"R²:   {r2:.4f}")
 
-    # Plot
-    plt.figure(figsize=(12, 5))
-    plt.plot(inv_targets, label='True')
-    plt.plot(inv_preds, label='Predicted')
-    plt.title("NVIDIA Stock Price Prediction")
-    plt.xlabel("Time")
-    plt.ylabel("Price")
-    plt.legend()
-    plt.grid()
-    plt.tight_layout()
-    plt.show()
 
     return mae, rmse, r2

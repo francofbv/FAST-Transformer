@@ -1,25 +1,27 @@
-import sys, os
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+import os
+import sys
+import logging
+from datetime import datetime
+from pathlib import Path
+import argparse
 
 import torch
 import torch.nn as nn
-from torch.utils.data import DataLoader, Dataset 
+from torch.utils.data import DataLoader
 import torch.optim as optim
 import numpy as np
+import pandas as pd
 from scipy.sparse.linalg import eigsh
-import argparse
+import yfinance as yf
+from tqdm import tqdm
+
+from config.config import config
 from models.transformer import TimeSeriesTransformer
 from models.fastnn_transformer import FastNNTransformer
-from config.config import config
-import yfinance as yf
 from utils.dataloader import TimeSeriesDataset
-from tqdm import tqdm
 from evaluate import evaluate
-import logging
-from datetime import datetime
-import shutil
-from pathlib import Path
-import pandas as pd
+
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
 # Set up logging
 logging.basicConfig(
@@ -88,14 +90,17 @@ train_loader = DataLoader(train_dataset, batch_size=config.BATCH_SIZE, shuffle=T
 test_loader = DataLoader(test_dataset, batch_size=config.BATCH_SIZE, shuffle=False)
 
 def compute_dp_mat(x, r_bar=config.R_BAR):
+    '''
+    Compute the pretrained dp (diversified projection)matrix for the fast-nn transformer
+
+    x: data to compute dp matrix for
+    r_bar: number of eigenvalues to keep
+    '''
     print(x.shape)
     p = np.shape(x)[1]
     covariance_matrix = x.T @ x
     eigen_values, eigen_vectors = eigsh(covariance_matrix, r_bar, which='LM')
     dp_matrix = eigen_vectors / np.sqrt(p)
-    #print(dp_matrix)
-    #print(dp_matrix.shape)
-    #exit()
 
     return dp_matrix
     
@@ -111,6 +116,7 @@ if args.fast_nn:
     )
     logging.info("Using Fast-NN Transformer model")
 else: 
+    # this lowk doesnt work so carefull lol
     model = TimeSeriesTransformer()
     logging.info("Using standard Transformer model")
 
@@ -120,11 +126,20 @@ logging.info(f"Using device: {device}")
 
 criterion = nn.MSELoss()
 optimizer = optim.Adam(model.parameters(), lr=config.LEARNING_RATE)
-scheduler = torch.optim.lr_scheduler.ExponentialLR(optimizer, gamma=0.999)
+scheduler = torch.optim.lr_scheduler.ExponentialLR(optimizer, gamma=0.999) # from fast-nn paper
 
 
 
 def train(data_loader, model, criterion, optimizer, reg_lambda, reg_tau, device):
+    '''
+    Train the model
+
+    data_loader: data loader
+    model: model to train
+    criterion: loss function
+    optimizer: optimizer
+    reg_lambda: regularization parameter
+    '''
     model.train()
     loss_dict = {'l2_loss': 0.0} # initialize l2_loss (MSE) to 0
 
@@ -136,19 +151,19 @@ def train(data_loader, model, criterion, optimizer, reg_lambda, reg_tau, device)
         # Move data to device
         X_batch, y_batch = X_batch.to(device), y_batch.to(device)
         
-        pred = model(X_batch).squeeze()
+        pred = model(X_batch).squeeze() # remove singleton dimension
         
-        loss = criterion(pred, y_batch.squeeze())
-        loss_dict['l2_loss'] += loss.item()
+        loss = criterion(pred, y_batch.squeeze()) # compute loss
+        loss_dict['l2_loss'] += loss.item() # add MSE to dict
 
         if reg_tau and args.fast_nn:
             reg_loss = model.regularization_loss(model=model, tau=reg_tau)
-            loss_dict['reg_loss'] += reg_lambda * reg_loss.item()
-            loss += reg_loss * reg_lambda
+            loss_dict['reg_loss'] += reg_lambda * reg_loss.item() # add reg loss to dict
+            loss += reg_loss * reg_lambda # add reg loss to total loss for backprop
 
-        optimizer.zero_grad()
-        loss.backward()
-        optimizer.step()
+        optimizer.zero_grad() # zero gradients
+        loss.backward() # backprop
+        optimizer.step() # update weights
         
         # Update progress bar
         progress_bar.set_postfix({
@@ -156,12 +171,20 @@ def train(data_loader, model, criterion, optimizer, reg_lambda, reg_tau, device)
             'reg_loss': f"{loss_dict['reg_loss']/(batch+1):.4f}" if reg_tau else "N/A"
         })
     
-    loss_dict['l2_loss'] /= len(data_loader)
-    if reg_tau: loss_dict['reg_loss'] /= len(data_loader)
+    loss_dict['l2_loss'] /= len(data_loader) # normalize loss
+    if reg_tau: loss_dict['reg_loss'] /= len(data_loader) # normalize reg loss
     
     return loss_dict
 
 def test(data_loader, model, criterion, reg_lambda, reg_tau, device):
+    '''
+    Test the model
+
+    data_loader: data loader
+    model: model to test
+    criterion: loss function
+    reg_lambda: regularization parameter
+    '''
     model.eval()
     loss_sum = 0
     reg_loss_sum = 0
@@ -169,7 +192,6 @@ def test(data_loader, model, criterion, reg_lambda, reg_tau, device):
     progress_bar = tqdm(data_loader, desc='Testing')
     with torch.no_grad():
         for x, y in progress_bar:
-            # Move data to device
             x, y = x.to(device), y.to(device)
             
             if args.fast_nn:
@@ -181,8 +203,8 @@ def test(data_loader, model, criterion, reg_lambda, reg_tau, device):
             loss_sum += loss.item()
             
             if reg_tau and args.fast_nn:
-                reg_loss = model.regularization_loss(model=model, tau=reg_tau)
-                reg_loss_sum += reg_lambda * reg_loss.item()
+                reg_loss = model.regularization_loss(model=model, tau=reg_tau) # compute reg loss
+                reg_loss_sum += reg_lambda * reg_loss.item() # add reg loss to total loss
             
             # Update progress bar
             progress_bar.set_postfix({
@@ -190,15 +212,15 @@ def test(data_loader, model, criterion, reg_lambda, reg_tau, device):
                 'reg_loss': f"{reg_loss_sum/(progress_bar.n+1):.4f}" if reg_tau else "N/A"
             })
 
-    loss_dict = {'l2_loss': loss_sum / len(data_loader)}
-    if reg_tau and args.fast_nn: loss_dict['reg_loss'] = reg_lambda * model.regularization_loss(model=model, tau=reg_tau).item()
+    loss_dict = {'l2_loss': loss_sum / len(data_loader)} # normalize loss
+    if reg_tau and args.fast_nn: loss_dict['reg_loss'] = reg_lambda * model.regularization_loss(model=model, tau=reg_tau).item() # compute reg loss
     
     return loss_dict
 
 # train loop
 try:
-    anneal_rate = (config.HP_TAU * 10 - config.HP_TAU) / config.NUM_EPOCHS
-    anneal_tau = config.HP_TAU * 10
+    anneal_rate = (config.HP_TAU * 10 - config.HP_TAU) / config.NUM_EPOCHS # anneal rate for tau
+    anneal_tau = config.HP_TAU * 10 # annealed tau value (tau scales regularization loss, reg loss gets smaller as tau increases)
 
     criterion = nn.MSELoss()
     optimizer = optim.Adam(model.parameters(), lr=config.LEARNING_RATE)
@@ -211,13 +233,13 @@ try:
 
     best_val_loss = float('inf')
     for epoch in range(config.NUM_EPOCHS):
-        logging.info(f"\nEpoch {epoch+1}/{config.NUM_EPOCHS}")
-        logging.info(f"Current learning rate: {scheduler.get_last_lr()[0]:.6f}")
+        logging.info(f"\nEpoch: {epoch+1}/{config.NUM_EPOCHS}")
+        logging.info(f"Current lr: {scheduler.get_last_lr()[0]:.6f}")
         
-        anneal_tau -= anneal_rate
-        train_losses = train(train_loader, model, criterion, optimizer, reg_lambda=0.005, reg_tau=anneal_tau, device=device)
+        anneal_tau -= anneal_rate # update tau
+        train_losses = train(train_loader, model, criterion, optimizer, reg_lambda=0.005, reg_tau=anneal_tau, device=device) # compute losses
         scheduler.step()
-        test_losses = test(test_loader, model, criterion, reg_lambda=0.1, reg_tau=anneal_tau, device=device)
+        test_losses = test(test_loader, model, criterion, reg_lambda=0.1, reg_tau=anneal_tau, device=device) # compute test losses
         
         # Log losses
         logging.info(f"Train Loss: {train_losses['l2_loss']:.4f}")
@@ -227,7 +249,7 @@ try:
         if anneal_tau and args.fast_nn:
             logging.info(f"Test Reg Loss: {test_losses['reg_loss']:.4f}")
         
-        # Save best model
+        # check if model is better than previous best
         if test_losses['l2_loss'] < best_val_loss:
             best_val_loss = test_losses['l2_loss']
             torch.save({
