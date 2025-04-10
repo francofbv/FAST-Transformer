@@ -8,7 +8,7 @@ def make_sequences(data, seq_len):
     X, y = [], []
     for i in range(len(data) - seq_len):
         X.append(data[i:i+seq_len])
-        y.append(data[i+seq_len])
+        y.append(data[i+seq_len, 0])
     return np.array(X), np.array(y)
 
 class TimeSeriesDataset(Dataset):
@@ -21,4 +21,4 @@ class TimeSeriesDataset(Dataset):
         return len(self.X)
         
     def __getitem__(self, idx):
-        return torch.FloatTensor(self.X[idx]), torch.FloatTensor(self.y[idx])
+        return torch.FloatTensor(self.X[idx]), torch.FloatTensor([self.y[idx]])

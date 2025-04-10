@@ -32,7 +32,6 @@ def main():
     model = FactorAugmentedSparseThroughput(
         input_dim=1,  # Single feature (close price)
         r_bar=config.R_BAR,
-        depth=config.DEPTH if hasattr(config, 'DEPTH') else 3,  # Default depth if not in config
         width=config.WIDTH if hasattr(config, 'WIDTH') else 32  # Default width if not in config
     )
 

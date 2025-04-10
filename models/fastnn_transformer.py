@@ -19,8 +19,7 @@ class FastNNTransformer(nn.Module):
         )
 
         self.transformer = TimeSeriesTransformer(
-            #input_dim=r_bar + width,
-            input_dim=width + input_dim,
+            input_dim=r_bar + width,
             d_model=d_model,
             nhead=nhead,
             num_layers=num_layers

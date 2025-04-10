@@ -215,7 +215,7 @@ try:
         logging.info(f"Current learning rate: {scheduler.get_last_lr()[0]:.6f}")
         
         anneal_tau -= anneal_rate
-        train_losses = train(train_loader, model, criterion, optimizer, reg_lambda=0.1, reg_tau=anneal_tau, device=device)
+        train_losses = train(train_loader, model, criterion, optimizer, reg_lambda=0.005, reg_tau=anneal_tau, device=device)
         scheduler.step()
         test_losses = test(test_loader, model, criterion, reg_lambda=0.1, reg_tau=anneal_tau, device=device)
         
@@ -248,7 +248,9 @@ torch.save({
     'scaler': train_dataset.scaler
 }, 'checkpoints/final_model.pth')
 
+'''
 # Evaluate the model
 logging.info("\nEvaluating model on test set...")
 mae, rmse, r2 = evaluate(model, test_loader, train_dataset.scaler)
 logging.info(f"Final Metrics - MAE: {mae:.4f}, RMSE: {rmse:.4f}, R²: {r2:.4f}")
+'''
