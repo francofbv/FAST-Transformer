@@ -5,16 +5,22 @@ from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score
 
 def evaluate(model, test_loader, scaler):
     model.eval()
+    device = next(model.parameters()).device  # Get the device the model is on
     all_preds = []
     all_targets = []
 
     with torch.no_grad():
         for X_batch, y_batch in test_loader:
-            preds = model(X_batch).squeeze().cpu().numpy()
-            y_true = y_batch.squeeze().cpu().numpy()
+            # Move batch to same device as model
+            X_batch = X_batch.to(device)
+            y_batch = y_batch.to(device)
             
-            all_preds.extend(preds)
-            all_targets.extend(y_true)
+            preds = model(X_batch).squeeze()
+            y_true = y_batch.squeeze()
+            
+            # Move predictions and targets back to CPU before converting to numpy
+            all_preds.extend(preds.cpu().numpy())
+            all_targets.extend(y_true.cpu().numpy())
             
     # Convert to numpy arrays and reshape
     all_preds = np.array(all_preds).reshape(-1, 1)
@@ -28,8 +34,8 @@ def evaluate(model, test_loader, scaler):
     targets_with_dummy = np.hstack([all_targets, dummy_vol])
 
     # Inverse transform predictions and targets
-    inv_preds = scaler.inverse_transform(preds_with_dummy)[:, 0].reshape(-1, 1)  # Take only first column (price)
-    inv_targets = scaler.inverse_transform(targets_with_dummy)[:, 0].reshape(-1, 1)  # Take only first column (price)
+    inv_preds = scaler.inverse_transform(preds_with_dummy)[:, 0].reshape(-1, 1)
+    inv_targets = scaler.inverse_transform(targets_with_dummy)[:, 0].reshape(-1, 1)
 
     # Evaluation metrics
     mae = mean_absolute_error(inv_targets, inv_preds)
