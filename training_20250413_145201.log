@@ -1,0 +1,7 @@
+2025-04-13 14:52:01,935 - INFO - Using Fast-NN Transformer model
+2025-04-13 14:52:01,936 - INFO - Using device: cpu
+2025-04-13 14:52:02,541 - INFO - Using device: cpu
+2025-04-13 14:52:02,542 - INFO - 
+Epoch: 1/50
+2025-04-13 14:52:02,542 - INFO - Current lr: 0.000100
+2025-04-13 14:52:02,560 - ERROR - Error during training: mat1 and mat2 shapes cannot be multiplied (7680x2 and 20x256)

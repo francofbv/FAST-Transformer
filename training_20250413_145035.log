@@ -1,0 +1,7 @@
+2025-04-13 14:50:36,104 - INFO - Using Fast-NN Transformer model
+2025-04-13 14:50:36,106 - INFO - Using device: cpu
+2025-04-13 14:50:36,828 - INFO - Using device: cpu
+2025-04-13 14:50:36,828 - INFO - 
+Epoch: 1/50
+2025-04-13 14:50:36,828 - INFO - Current lr: 0.000100
+2025-04-13 14:50:38,114 - ERROR - Error during training: 'int' object has no attribute 'item'

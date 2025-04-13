@@ -5,6 +5,10 @@ from datetime import datetime
 from pathlib import Path
 import argparse
 
+# Add the project root directory to the Python path
+project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
+sys.path.append(project_root)
+
 import torch
 import torch.nn as nn
 from torch.utils.data import DataLoader
@@ -20,8 +24,6 @@ from models.transformer import TimeSeriesTransformer
 from models.fastnn_transformer import FastNNTransformer
 from utils.dataloader import TimeSeriesDataset
 from evaluate import evaluate
-
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
 # Set up logging
 logging.basicConfig(

@@ -14,6 +14,8 @@ class TimeSeriesTransformer(nn.Module):
     num_layers: number of transformer layers
     '''
     def __init__(self, input_dim, d_model=config.D_MODEL, nhead=config.NHEAD, num_layers=config.NUM_LAYERS):
+        super().__init__()
+        
         self.input_proj = nn.Linear(input_dim, d_model) # project into models dimension space
         self.pos_embedding = nn.Parameter(torch.randn(config.SEQ_LEN, d_model)) # learnable position embeddings
         encoder_layer = nn.TransformerEncoderLayer(d_model=d_model, nhead=nhead) # transformer layer w/ multi-head attention, FFN, normalization, residual connections

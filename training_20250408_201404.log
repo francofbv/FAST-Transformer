@@ -1,7 +1,0 @@
-2025-04-08 20:14:05,356 - INFO - Using standard Transformer model
-2025-04-08 20:14:05,357 - INFO - Using device: cpu
-2025-04-08 20:14:05,983 - INFO - Using device: cpu
-2025-04-08 20:14:05,983 - INFO - 
-Epoch 1/10
-2025-04-08 20:14:05,983 - INFO - Current learning rate: 0.000100
-2025-04-08 20:14:06,831 - ERROR - Error during training: 'TimeSeriesTransformer' object has no attribute 'regularization_loss'

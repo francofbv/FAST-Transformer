@@ -1,7 +1,0 @@
-2025-04-08 20:25:11,490 - INFO - Using Fast-NN Transformer model
-2025-04-08 20:25:11,490 - INFO - Using device: cpu
-2025-04-08 20:25:11,914 - INFO - Using device: cpu
-2025-04-08 20:25:11,914 - INFO - 
-Epoch 1/10
-2025-04-08 20:25:11,914 - INFO - Current learning rate: 0.000100
-2025-04-08 20:25:15,767 - ERROR - Error during training: division by zero

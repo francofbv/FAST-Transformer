@@ -1,0 +1,44 @@
+2025-04-13 15:32:35,911 - INFO - Using Fast-NN Transformer model
+2025-04-13 15:32:35,912 - INFO - Using device: cpu
+2025-04-13 15:32:36,425 - INFO - Using device: cpu
+2025-04-13 15:32:36,425 - INFO - 
+Epoch: 1/5
+2025-04-13 15:32:36,425 - INFO - Current lr: 0.000100
+2025-04-13 15:32:52,379 - INFO - Train Loss: 0.1267
+2025-04-13 15:32:52,379 - INFO - Train Reg Loss: 105.4859
+2025-04-13 15:32:52,379 - INFO - Test Loss: 0.0648
+2025-04-13 15:32:52,379 - INFO - Test Reg Loss: 2044.2910
+2025-04-13 15:32:52,458 - INFO - Saved new best model!
+2025-04-13 15:32:52,458 - INFO - 
+Epoch: 2/5
+2025-04-13 15:32:52,458 - INFO - Current lr: 0.000100
+2025-04-13 15:33:08,531 - INFO - Train Loss: 0.0246
+2025-04-13 15:33:08,531 - INFO - Train Reg Loss: 98.9271
+2025-04-13 15:33:08,531 - INFO - Test Loss: 0.0329
+2025-04-13 15:33:08,531 - INFO - Test Reg Loss: 1907.9084
+2025-04-13 15:33:08,626 - INFO - Saved new best model!
+2025-04-13 15:33:08,626 - INFO - 
+Epoch: 3/5
+2025-04-13 15:33:08,626 - INFO - Current lr: 0.000100
+2025-04-13 15:33:24,557 - INFO - Train Loss: 0.0187
+2025-04-13 15:33:24,557 - INFO - Train Reg Loss: 92.1097
+2025-04-13 15:33:24,557 - INFO - Test Loss: 0.0359
+2025-04-13 15:33:24,557 - INFO - Test Reg Loss: 1772.5682
+2025-04-13 15:33:24,557 - INFO - 
+Epoch: 4/5
+2025-04-13 15:33:24,557 - INFO - Current lr: 0.000100
+2025-04-13 15:33:40,463 - INFO - Train Loss: 0.0158
+2025-04-13 15:33:40,463 - INFO - Train Reg Loss: 85.4994
+2025-04-13 15:33:40,463 - INFO - Test Loss: 0.0243
+2025-04-13 15:33:40,463 - INFO - Test Reg Loss: 1643.3871
+2025-04-13 15:33:40,568 - INFO - Saved new best model!
+2025-04-13 15:33:40,568 - INFO - 
+Epoch: 5/5
+2025-04-13 15:33:40,568 - INFO - Current lr: 0.000100
+2025-04-13 15:33:56,732 - INFO - Train Loss: 0.0181
+2025-04-13 15:33:56,732 - INFO - Train Reg Loss: 79.4489
+2025-04-13 15:33:56,732 - INFO - Test Loss: 0.0451
+2025-04-13 15:33:56,732 - INFO - Test Reg Loss: 1526.6296
+2025-04-13 15:33:56,810 - INFO - 
+Evaluating model on test set...
+2025-04-13 15:33:57,337 - INFO - Final Metrics - MAE: 1.8424, RMSE: 2.2676, R²: 0.8589
