@@ -1,4 +1,0 @@
-2025-04-13 17:05:17,226 - INFO - Loading and preprocessing data...
-2025-04-13 17:05:17,268 - INFO - Train dataset size: 32
-2025-04-13 17:05:17,268 - INFO - Validation dataset size: 8
-2025-04-13 17:05:17,268 - ERROR - Error during training: FastNNTransformer.__init__() missing 1 required positional argument: 'dp_mat'

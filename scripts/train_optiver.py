@@ -4,24 +4,23 @@ import logging
 from datetime import datetime
 from pathlib import Path
 import argparse
+import numpy as np
+import torch
+import torch.nn as nn
+from torch.utils.data import DataLoader, random_split
+import torch.optim as optim
+from tqdm import tqdm
+from scipy.sparse.linalg import eigsh
 
 # Add the project root directory to the Python path
 project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
 sys.path.append(project_root)
 
-import torch
-import torch.nn as nn
-from torch.utils.data import DataLoader, random_split
-import torch.optim as optim
-import numpy as np
-import pandas as pd
-from tqdm import tqdm
-from scipy.sparse.linalg import eigsh
-
 from config.config import config
 from models.transformer import TimeSeriesTransformer
 from models.fastnn_transformer import FastNNTransformer
 from utils.optiver_dataloader import OptiverDataset
+from scripts.evaluate import evaluate
 
 # Set up logging
 logging.basicConfig(
@@ -33,6 +32,39 @@ logging.basicConfig(
     ]
 )
 
+# Add safe globals for model loading
+torch.serialization.add_safe_globals([np.core.multiarray.scalar])
+
+def save_checkpoint(model, optimizer, epoch, val_loss, val_metrics, feature_scaler, target_scaler, path):
+    """Save model checkpoint with only necessary data"""
+    checkpoint = {
+        'epoch': epoch,
+        'model_state_dict': model.state_dict(),
+        'optimizer_state_dict': optimizer.state_dict(),
+        'val_loss': val_loss,
+        'val_metrics': val_metrics,
+        'feature_scaler': {
+            'mean': feature_scaler.mean_,
+            'scale': feature_scaler.scale_
+        },
+        'target_scaler': {
+            'mean': target_scaler.mean_,
+            'scale': target_scaler.scale_
+        } if target_scaler else None
+    }
+    torch.save(checkpoint, path)
+
+def load_checkpoint(path, model, optimizer=None):
+    """Load model checkpoint with proper error handling"""
+    try:
+        checkpoint = torch.load(path, weights_only=False)
+        model.load_state_dict(checkpoint['model_state_dict'])
+        if optimizer is not None:
+            optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
+        return checkpoint
+    except Exception as e:
+        logging.error(f"Error loading checkpoint: {e}")
+        raise
 
 def compute_dp_mat(x, r_bar=config.R_BAR):
     '''
@@ -72,7 +104,6 @@ def main():
         if args.fast_nn:
             # Compute DP matrix for Fast-NN
             dp_mat = compute_dp_mat(train_dataset.dataset.features)
-            print(dp_mat.shape)
             model = FastNNTransformer(
                 dp_mat=dp_mat,
                 input_dim=config.INPUT_DIM,
@@ -118,6 +149,7 @@ def main():
                 
                 if args.fast_nn:
                     reg_loss = model.regularization_loss(model, config.HP_TAU)
+                    reg_loss = reg_loss / (config.BATCH_SIZE * config.SEQ_LEN)
                     loss += config.CHOICE_LAMBDA[0] * reg_loss
                 
                 loss.backward()
@@ -130,41 +162,64 @@ def main():
             
             # Validation phase
             model.eval()
-            val_loss = 0.0
-            with torch.no_grad():
-                for X, y in val_loader:
-                    X, y = X.to(device), y.to(device)
-                    output = model(X)
-                    loss = nn.MSELoss()(output, y)
-                    val_loss += loss.item()
-            
-            val_loss /= len(val_loader)
+            val_metrics = evaluate(
+                model, 
+                val_loader, 
+                feature_scaler=dataset.scaler,
+                target_scaler=config.TARGET_SCALER,
+                fast_nn=args.fast_nn
+            )
+            val_loss = val_metrics['loss']
             
             # Log metrics
-            logging.info(f"Epoch {epoch+1}: Train Loss = {train_loss:.4f}, Val Loss = {val_loss:.4f}")
+            logging.info(f"Epoch {epoch+1}:")
+            logging.info(f"  Train Loss = {train_loss:.4f}")
+            logging.info(f"  Val Loss = {val_loss:.4f}")
+            logging.info(f"  Val MAE = {val_metrics['mae']:.4f}")
+            logging.info(f"  Val RMSE = {val_metrics['rmse']:.4f}")
+            logging.info(f"  Val R² = {val_metrics['r2']:.4f}")
             
             # Learning rate scheduling
             scheduler.step(val_loss)
             
-            # Early stopping
+            # Save best model
             if val_loss < best_val_loss:
                 best_val_loss = val_loss
                 patience_counter = 0
-                # Save best model
-                torch.save({
-                    'epoch': epoch,
-                    'model_state_dict': model.state_dict(),
-                    'optimizer_state_dict': optimizer.state_dict(),
-                    'val_loss': val_loss,
-                    'scaler': dataset.scaler
-                }, 'checkpoints/best_model.pth')
+                save_checkpoint(
+                    model=model,
+                    optimizer=optimizer,
+                    epoch=epoch,
+                    val_loss=val_loss,
+                    val_metrics=val_metrics,
+                    feature_scaler=dataset.scaler,
+                    target_scaler=config.TARGET_SCALER,
+                    path='checkpoints/best_model.pth'
+                )
+                logging.info("  Saved new best model!")
             else:
                 patience_counter += 1
                 if patience_counter >= config.EARLY_STOPPING_PATIENCE:
-                    logging.info("Early stopping triggered")
+                    logging.info(f"Early stopping triggered after {epoch+1} epochs")
                     break
         
         logging.info("Training completed!")
+        
+        # Load and evaluate best model
+        checkpoint = load_checkpoint('checkpoints/best_model.pth', model)
+        final_metrics = evaluate(
+            model, 
+            val_loader, 
+            feature_scaler=dataset.scaler,
+            target_scaler=config.TARGET_SCALER,
+            fast_nn=args.fast_nn
+        )
+        
+        logging.info("\nFinal Evaluation of Best Model:")
+        logging.info(f"  Val Loss = {final_metrics['loss']:.4f}")
+        logging.info(f"  Val MAE = {final_metrics['mae']:.4f}")
+        logging.info(f"  Val RMSE = {final_metrics['rmse']:.4f}")
+        logging.info(f"  Val R² = {final_metrics['r2']:.4f}")
         
     except Exception as e:
         logging.error(f"Error during training: {e}")

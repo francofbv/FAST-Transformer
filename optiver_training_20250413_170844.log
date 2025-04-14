@@ -1,4 +1,0 @@
-2025-04-13 17:08:44,792 - INFO - Loading and preprocessing data...
-2025-04-13 17:08:44,826 - INFO - Train dataset size: 32
-2025-04-13 17:08:44,826 - INFO - Validation dataset size: 8
-2025-04-13 17:08:44,827 - ERROR - Error during training: name 'dp_mat' is not defined

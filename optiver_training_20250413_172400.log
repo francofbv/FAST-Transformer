@@ -1,4 +1,0 @@
-2025-04-13 17:24:00,804 - INFO - Loading and preprocessing data...
-2025-04-13 17:24:00,875 - INFO - Using Fast-NN Transformer model
-2025-04-13 17:24:00,877 - INFO - Using device: cpu
-2025-04-13 17:24:01,537 - ERROR - Error during training: mat1 and mat2 shapes cannot be multiplied (4800x28 and 20x256)

@@ -1,6 +1,0 @@
-2025-04-13 17:09:03,558 - INFO - Loading and preprocessing data...
-2025-04-13 17:09:03,581 - INFO - Train dataset size: 32
-2025-04-13 17:09:03,581 - INFO - Validation dataset size: 8
-2025-04-13 17:09:03,612 - INFO - Using Fast-NN transformer model
-2025-04-13 17:09:03,614 - INFO - Using device: cpu
-2025-04-13 17:09:04,293 - ERROR - Error during training: mat1 and mat2 shapes cannot be multiplied (3200x28 and 20x256)

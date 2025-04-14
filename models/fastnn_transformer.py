@@ -78,11 +78,15 @@ class FastNNTransformer(nn.Module):
         tau: tau value (parameter for regularization loss)
         penalize_weights: whether to penalize weights
         '''
-        l1_penalty = torch.abs(self.fast_nn.variable_selection.weight) / tau # get the l1 penalty
-        clipped_l1 = torch.clamp(l1_penalty, max=1.0) # caps penalty values at 1.0
-
-        if penalize_weights:
-            for name, param in model.named_parameters(): # this is probably really bad for transformer lol (update: transformer loves sparsity for some reason 😸)
-                if len(param.shape) > 1: clipped_l1 += 0.001 * torch.sum(torch.abs(param))
+        # Only penalize the variable selection layer
+        l1_penalty = torch.mean(torch.abs(self.fast_nn.variable_selection.weight)) / tau
         
-        return torch.sum(clipped_l1) # return the sum of the clipped l1 penalty (add this to main loss)
+        if penalize_weights:
+            # Add small L2 regularization for other parameters
+            l2_reg = 0.0
+            for name, param in model.named_parameters():
+                if 'variable_selection' not in name and len(param.shape) > 1:
+                    l2_reg += torch.norm(param)
+            l1_penalty += 0.001 * l2_reg
+        
+        return l1_penalty

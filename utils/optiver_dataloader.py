@@ -4,6 +4,7 @@ from torch.utils.data import Dataset
 from sklearn.preprocessing import StandardScaler
 import torch
 from config.config import config
+
 class OptiverDataset(Dataset):
     def __init__(self, data_path, seq_len=config.SEQ_LEN, is_training=True):
         """
@@ -37,6 +38,10 @@ class OptiverDataset(Dataset):
         # Store targets if training
         if is_training:
             self.targets = self.df['target'].values
+            if config.NORMALIZE_TARGETS:
+                self.target_scaler = StandardScaler()
+                self.targets = self.target_scaler.fit_transform(self.targets.reshape(-1, 1)).flatten()
+                config.TARGET_SCALER = self.target_scaler
         
         # Create sequences
         self.X, self.y = self._create_sequences()
@@ -78,11 +83,9 @@ class OptiverDataset(Dataset):
         
         # Get unique time_ids
         unique_times = sorted(self.df['time_id'].unique())
-        num_stocks = len(self.df['stock_id'].unique())
         num_features = self.features.shape[1]
         
         print(f"Creating sequences with {len(unique_times)} unique time points")
-        print(f"Number of stocks: {num_stocks}")
         print(f"Number of features: {num_features}")
         print(f"Sequence length: {self.seq_len}")
         
@@ -96,29 +99,29 @@ class OptiverDataset(Dataset):
             window_mask = self.df['time_id'].isin(time_window)
             window_data = self.features[window_mask]
             
-            # Print debug information
-            print(f"\nWindow {i}:")
-            print(f"Time window: {time_window}")
-            print(f"Window mask sum: {window_mask.sum()}")
-            print(f"Window data shape: {window_data.shape}")
+            # Get unique stocks in this window
+            unique_stocks = self.df[window_mask]['stock_id'].unique()
+            num_stocks = len(unique_stocks)
             
-            try:
-                # Reshape the data to (seq_len, num_stocks, num_features)
-                window_data = window_data.reshape(self.seq_len, num_stocks, num_features)
-                X.append(window_data)
-                
-                if self.is_training:
-                    # Get the target for the next time step
-                    next_time = unique_times[i+self.seq_len]
-                    next_time_mask = self.df['time_id'] == next_time
-                    y.append(self.targets[next_time_mask])
-                
-                print(f"Successfully created sequence {len(X)}")
-            except ValueError as e:
-                print(f"Error reshaping window data: {e}")
-                print(f"Window data shape: {window_data.shape}")
-                print(f"Expected shape: ({self.seq_len}, {num_stocks}, {num_features})")
-                continue
+            # Create a 3D array with padding for missing stocks
+            window_sequence = np.zeros((self.seq_len, num_stocks, num_features))
+            
+            # Fill the sequence with actual data
+            for t, time_id in enumerate(time_window):
+                time_mask = self.df['time_id'] == time_id
+                time_data = self.features[time_mask]
+                window_sequence[t, :len(time_data)] = time_data
+            
+            X.append(window_sequence)
+            
+            if self.is_training:
+                # Get the target for the next time step
+                next_time = unique_times[i+self.seq_len]
+                next_time_mask = self.df['time_id'] == next_time
+                y.append(self.targets[next_time_mask])
+            
+            if i % 100 == 0:  # Print progress every 100 windows
+                print(f"Processed window {i}/{len(unique_times) - self.seq_len}")
         
         if not X:
             raise ValueError("No valid sequences could be created. Check if the sequence length is appropriate for your data size.")

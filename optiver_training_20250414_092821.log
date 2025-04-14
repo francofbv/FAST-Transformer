@@ -1,7 +1,0 @@
-2025-04-14 09:28:21,065 - INFO - Loading and preprocessing data...
-2025-04-14 09:28:21,134 - INFO - Using Fast-NN Transformer model
-2025-04-14 09:28:21,136 - INFO - Using device: cpu
-2025-04-14 09:28:23,106 - INFO - Epoch 1: Train Loss = 708307.9375, Val Loss = 33.5064
-2025-04-14 09:28:24,765 - INFO - Epoch 2: Train Loss = 705467.5000, Val Loss = 33.5132
-2025-04-14 09:28:25,759 - INFO - Epoch 3: Train Loss = 702634.3750, Val Loss = 33.5204
-2025-04-14 09:28:26,789 - INFO - Epoch 4: Train Loss = 699809.6250, Val Loss = 33.5279

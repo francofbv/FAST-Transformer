@@ -18,21 +18,19 @@ class TimeSeriesTransformer(nn.Module):
         
         self.input_proj = nn.Linear(input_dim, d_model) # project into models dimension space
         self.pos_embedding = nn.Parameter(torch.randn(config.SEQ_LEN, d_model)) # learnable position embeddings
-        encoder_layer = nn.TransformerEncoderLayer(d_model=d_model, nhead=nhead) # transformer layer w/ multi-head attention, FFN, normalization, residual connections
+        encoder_layer = nn.TransformerEncoderLayer(d_model=d_model, nhead=nhead, batch_first=True) # transformer layer w/ multi-head attention, FFN, normalization, residual connections
         self.transformer = nn.TransformerEncoder(encoder_layer, num_layers=num_layers) # stack n_layer encoder layers
         self.output_proj = nn.Linear(d_model, 1) # output to 1 dimension
 
     def forward(self, x):
         # x shape: (batch_size, seq_len, input_dim)
         
-        print(x.shape)
-        print(self.input_proj.weight.shape)
         x = self.input_proj(x) + self.pos_embedding # add positional embeddings
         
-        x = x.permute(1, 0, 2) # (seq_len, batch_size, d_model)
+        # No need to permute since we're using batch_first=True
         x = self.transformer(x)
         
-        x = x[-1] # (batch_size, d_model)
+        x = x[:, -1] # (batch_size, d_model)
         x = self.output_proj(x)
 
         return x
