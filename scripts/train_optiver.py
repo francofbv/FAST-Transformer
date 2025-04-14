@@ -5,6 +5,10 @@ from datetime import datetime
 from pathlib import Path
 import argparse
 
+# Add the project root directory to the Python path
+project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
+sys.path.append(project_root)
+
 import torch
 import torch.nn as nn
 from torch.utils.data import DataLoader, random_split
@@ -12,6 +16,7 @@ import torch.optim as optim
 import numpy as np
 import pandas as pd
 from tqdm import tqdm
+from scipy.sparse.linalg import eigsh
 
 from config.config import config
 from models.transformer import TimeSeriesTransformer
@@ -27,6 +32,21 @@ logging.basicConfig(
         logging.StreamHandler()
     ]
 )
+
+
+def compute_dp_mat(x, r_bar=config.R_BAR):
+    '''
+    Compute the pretrained dp (diversified projection)matrix for the fast-nn transformer
+
+    x: data to compute dp matrix for
+    r_bar: number of eigenvalues to keep
+    '''
+    p = np.shape(x)[1]
+    covariance_matrix = x.T @ x
+    eigen_values, eigen_vectors = eigsh(covariance_matrix, r_bar, which='LM')
+    dp_matrix = eigen_vectors / np.sqrt(p)
+
+    return dp_matrix
 
 def main():
     # Parse command line arguments
@@ -52,6 +72,7 @@ def main():
         if args.fast_nn:
             # Compute DP matrix for Fast-NN
             dp_mat = compute_dp_mat(train_dataset.dataset.features)
+            print(dp_mat.shape)
             model = FastNNTransformer(
                 dp_mat=dp_mat,
                 input_dim=config.INPUT_DIM,

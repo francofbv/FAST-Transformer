@@ -3,74 +3,131 @@ import numpy as np
 from torch.utils.data import Dataset
 from sklearn.preprocessing import StandardScaler
 import torch
-
+from config.config import config
 class OptiverDataset(Dataset):
-    def __init__(self, data_path, seq_len=120, is_training=True):
+    def __init__(self, data_path, seq_len=config.SEQ_LEN, is_training=True):
         """
         Initialize the Optiver dataset
-        
-        Inherits from torch.utils.data.Dataset
         
         Args:
             data_path: Path to the CSV file
             seq_len: Length of the sequence for the transformer
             is_training: Whether this is training data (affects target calculation)
         """
-        self.seq_len = seq_len # seq_len = number of lags
+        self.seq_len = seq_len
         self.is_training = is_training
         
-        df = pd.read_csv(data_path) # load data
-        df['time_id'] = pd.to_datetime(df['time_id']) # time to datetime
+        # Load and preprocess data
+        self.df = pd.read_csv(data_path)
+        self.df = self.df.sort_values(['time_id', 'stock_id'])
         
-        df = df.sort_values('time_id') # sort by time_id (dataset already sorted but this is a sanity check)
+        # Print debug information
+        print(f"Number of rows in dataset: {len(self.df)}")
+        print(f"Number of unique time_ids: {len(self.df['time_id'].unique())}")
+        print(f"Number of unique stocks: {len(self.df['stock_id'].unique())}")
         
-        df = self._engineer_features(df) # feature engineering
+        # Feature engineering
+        self.df = self._engineer_features(self.df)
         
-        self.scaler = StandardScaler() # normalize features
-        feature_cols = [col for col in df.columns if col not in ['time_id', 'stock_id', 'target']]
-        self.features = self.scaler.fit_transform(df[feature_cols])
+        # Normalize features
+        self.scaler = StandardScaler()
+        feature_cols = [col for col in self.df.columns if col not in ['time_id', 'stock_id', 'target', 'row_id']]
+        self.features = self.scaler.fit_transform(self.df[feature_cols])
         
-        if is_training: self.targets = df['target'].values # store targets if training
+        # Store targets if training
+        if is_training:
+            self.targets = self.df['target'].values
         
-        self.X, self.y = self._create_sequences() # create sequences (lags)
+        # Create sequences
+        self.X, self.y = self._create_sequences()
+        
+        # Print debug information
+        print(f"Number of sequences created: {len(self.X)}")
+        if is_training:
+            print(f"Number of targets: {len(self.y)}")
         
     def _engineer_features(self, df):
         """
         Engineer additional features from the raw data
         """
-
-        df['price_change'] = df.groupby('stock_id')['reference_price'].pct_change() # compute price changes
+        # Calculate price changes within each time_id
+        df['price_change'] = df.groupby('time_id')['reference_price'].pct_change()
         
-        for window in [5, 10, 20, 50]: # rolling windows
-            df[f'price_ma_{window}'] = df.groupby('stock_id')['reference_price'].rolling(window).mean().reset_index(0, drop=True)
-            df[f'price_std_{window}'] = df.groupby('stock_id')['reference_price'].rolling(window).std().reset_index(0, drop=True)
-            df[f'volume_ma_{window}'] = df.groupby('stock_id')['matched_size'].rolling(window).mean().reset_index(0, drop=True)
+        # Calculate rolling statistics within each time_id
+        for window in [5, 10, 20, 50]:
+            df[f'price_ma_{window}'] = df.groupby('time_id')['reference_price'].rolling(window).mean().reset_index(0, drop=True)
+            df[f'price_std_{window}'] = df.groupby('time_id')['reference_price'].rolling(window).std().reset_index(0, drop=True)
+            df[f'volume_ma_{window}'] = df.groupby('time_id')['matched_size'].rolling(window).mean().reset_index(0, drop=True)
         
-        df['volatility'] = df.groupby('stock_id')['price_change'].rolling(20).std().reset_index(0, drop=True) # compute volatility
+        # Calculate volatility within each time_id
+        df['volatility'] = df.groupby('time_id')['price_change'].rolling(20).std().reset_index(0, drop=True)
         
-        df['spread'] = (df['ask_price'] - df['bid_price']) / df['reference_price'] # compute spread (difference between bid and ask price of asset, normalized by reference price)
+        # Calculate spread
+        df['spread'] = (df['ask_price'] - df['bid_price']) / df['reference_price']
         
-        df = df.fillna(-9e10) # fill NaN values with -9e10 (from 9th place solution)
+        # Fill NaN values
+        df = df.fillna(-9e10)
         
         return df
     
     def _create_sequences(self):
         """
-        Create sequences for the transformer model
+        Create sequences for the transformer model using overlapping windows
         """
         X, y = [], []
         
-        # Group by stock_id
-        for stock_id in pd.unique(self.df['stock_id']):
-            stock_data = self.df[self.df['stock_id'] == stock_id]
-            features = self.features[stock_data.index]
-            
-            # Create sequences
-            for i in range(len(features) - self.seq_len):
-                X.append(features[i:i+self.seq_len])
-                if self.is_training:
-                    y.append(self.targets[i+self.seq_len])
+        # Get unique time_ids
+        unique_times = sorted(self.df['time_id'].unique())
+        num_stocks = len(self.df['stock_id'].unique())
+        num_features = self.features.shape[1]
         
+        print(f"Creating sequences with {len(unique_times)} unique time points")
+        print(f"Number of stocks: {num_stocks}")
+        print(f"Number of features: {num_features}")
+        print(f"Sequence length: {self.seq_len}")
+        
+        # Create sequences with overlapping windows
+        stride = 1  # Overlap between sequences
+        for i in range(0, len(unique_times) - self.seq_len, stride):
+            # Get the time window
+            time_window = unique_times[i:i+self.seq_len]
+            
+            # Get all data points in this time window
+            window_mask = self.df['time_id'].isin(time_window)
+            window_data = self.features[window_mask]
+            
+            # Print debug information
+            print(f"\nWindow {i}:")
+            print(f"Time window: {time_window}")
+            print(f"Window mask sum: {window_mask.sum()}")
+            print(f"Window data shape: {window_data.shape}")
+            
+            try:
+                # Reshape the data to (seq_len, num_stocks, num_features)
+                window_data = window_data.reshape(self.seq_len, num_stocks, num_features)
+                X.append(window_data)
+                
+                if self.is_training:
+                    # Get the target for the next time step
+                    next_time = unique_times[i+self.seq_len]
+                    next_time_mask = self.df['time_id'] == next_time
+                    y.append(self.targets[next_time_mask])
+                
+                print(f"Successfully created sequence {len(X)}")
+            except ValueError as e:
+                print(f"Error reshaping window data: {e}")
+                print(f"Window data shape: {window_data.shape}")
+                print(f"Expected shape: ({self.seq_len}, {num_stocks}, {num_features})")
+                continue
+        
+        if not X:
+            raise ValueError("No valid sequences could be created. Check if the sequence length is appropriate for your data size.")
+            
+        print(f"\nFinal shapes:")
+        print(f"X shape: {np.array(X).shape}")
+        if self.is_training:
+            print(f"y shape: {np.array(y).shape}")
+            
         return np.array(X), np.array(y) if self.is_training else None
     
     def __len__(self):
@@ -79,6 +136,6 @@ class OptiverDataset(Dataset):
     def __getitem__(self, idx):
         x = torch.FloatTensor(self.X[idx])
         if self.is_training:
-            y = torch.FloatTensor([self.y[idx]])
+            y = torch.FloatTensor(self.y[idx])
             return x, y
         return x 

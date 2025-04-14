@@ -25,6 +25,8 @@ class TimeSeriesTransformer(nn.Module):
     def forward(self, x):
         # x shape: (batch_size, seq_len, input_dim)
         
+        print(x.shape)
+        print(self.input_proj.weight.shape)
         x = self.input_proj(x) + self.pos_embedding # add positional embeddings
         
         x = x.permute(1, 0, 2) # (seq_len, batch_size, d_model)

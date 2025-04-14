@@ -45,13 +45,28 @@ class FastNNTransformer(nn.Module):
         x: input data
         is_training: whether the model is in training mode
         '''
-
+        # Reshape input: (batch_size, seq_len, num_stocks, num_features) -> (batch_size * seq_len * num_stocks, num_features)
+        batch_size, seq_len, num_stocks, num_features = x.shape
+        x_reshaped = x.reshape(-1, num_features)
+        
         # fast_nn
-        x1, x2 = self.fast_nn(x, is_training)
+        x1, x2 = self.fast_nn(x_reshaped, is_training)
+        
+        # Reshape back: (batch_size * seq_len * num_stocks, r_bar/width) -> (batch_size, seq_len, num_stocks, r_bar/width)
+        x1 = x1.reshape(batch_size, seq_len, num_stocks, -1)
+        x2 = x2.reshape(batch_size, seq_len, num_stocks, -1)
+        
+        # Combine features
         combined = torch.cat([x1, x2], dim=-1)
+        
+        # Reshape for transformer: (batch_size, seq_len, num_stocks, input_dim) -> (batch_size * num_stocks, seq_len, input_dim)
+        combined = combined.reshape(batch_size * num_stocks, seq_len, -1)
         
         # transformer
         output = self.transformer(combined)
+        
+        # Reshape output back: (batch_size * num_stocks, 1) -> (batch_size, num_stocks)
+        output = output.reshape(batch_size, num_stocks)
 
         return output
     

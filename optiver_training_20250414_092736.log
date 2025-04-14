@@ -1,0 +1,4 @@
+2025-04-14 09:27:36,089 - INFO - Loading and preprocessing data...
+2025-04-14 09:27:36,185 - INFO - Using Fast-NN Transformer model
+2025-04-14 09:27:36,187 - INFO - Using device: cpu
+2025-04-14 09:27:36,839 - ERROR - Error during training: The size of tensor a (10) must match the size of tensor b (20) at non-singleton dimension 2
