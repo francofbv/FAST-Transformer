@@ -5,10 +5,10 @@ from sklearn.preprocessing import StandardScaler
 import torch
 from config.config import config
 
-class OptiverDataset(Dataset):
+class OptiverDataset(Dataset): # inherit from torch.utils.data.Dataset
     def __init__(self, data_path, seq_len=config.SEQ_LEN, is_training=True):
         """
-        Initialize the Optiver dataset
+        Initialize Optiver dataset
         
         Args:
             data_path: Path to the CSV file
@@ -22,7 +22,7 @@ class OptiverDataset(Dataset):
         self.df = pd.read_csv(data_path)
         self.df = self.df.sort_values(['time_id', 'stock_id'])
         
-        # Print debug information
+        # Print data info 
         print(f"Number of rows in dataset: {len(self.df)}")
         print(f"Number of unique time_ids: {len(self.df['time_id'].unique())}")
         print(f"Number of unique stocks: {len(self.df['stock_id'].unique())}")
@@ -38,16 +38,14 @@ class OptiverDataset(Dataset):
         # Store targets if training
         if is_training:
             self.targets = self.df['target'].values
-            if config.NORMALIZE_TARGETS:
-                self.target_scaler = StandardScaler()
-                self.targets = self.target_scaler.fit_transform(self.targets.reshape(-1, 1)).flatten()
-                config.TARGET_SCALER = self.target_scaler
+            self.target_scaler = StandardScaler()
+            self.targets = self.target_scaler.fit_transform(self.targets.reshape(-1, 1)).flatten()
+            config.TARGET_SCALER = self.target_scaler
         
         # Create sequences
         self.X, self.y = self._create_sequences()
         
         # Print debug information
-        print(f"Number of sequences created: {len(self.X)}")
         if is_training:
             print(f"Number of targets: {len(self.y)}")
         
@@ -59,7 +57,7 @@ class OptiverDataset(Dataset):
         df['price_change'] = df.groupby('time_id')['reference_price'].pct_change()
         
         # Calculate rolling statistics within each time_id
-        for window in [5, 10, 20, 50]:
+        for window in config.LAGS:
             df[f'price_ma_{window}'] = df.groupby('time_id')['reference_price'].rolling(window).mean().reset_index(0, drop=True)
             df[f'price_std_{window}'] = df.groupby('time_id')['reference_price'].rolling(window).std().reset_index(0, drop=True)
             df[f'volume_ma_{window}'] = df.groupby('time_id')['matched_size'].rolling(window).mean().reset_index(0, drop=True)

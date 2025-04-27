@@ -1,6 +1,6 @@
 import torch 
 import numpy as np
-from sklearn.metrics import mean_absolute_error, root_mean_squared_error, r2_score
+from sklearn.metrics import mean_absolute_error, root_mean_squared_error
 from sklearn.preprocessing import StandardScaler
 from config.config import config
 
@@ -45,7 +45,7 @@ def evaluate(model, test_loader, feature_scaler=None, target_scaler=None, fast_n
                 # Add regularization loss if using Fast-NN
                 reg_loss = model.regularization_loss(model, config.HP_TAU)
                 reg_loss = reg_loss / (config.BATCH_SIZE * config.SEQ_LEN)
-                loss += config.CHOICE_LAMBDA[0] * reg_loss
+                loss += config.LAMBDA * reg_loss
             
             total_loss += loss.item()
             
@@ -83,16 +83,12 @@ def evaluate(model, test_loader, feature_scaler=None, target_scaler=None, fast_n
     # Calculate metrics
     mae = mean_absolute_error(inv_targets, inv_preds)
     rmse = root_mean_squared_error(inv_targets, inv_preds)
-    r2 = r2_score(inv_targets, inv_preds)
     
     # Print detailed metrics
     print("\nEvaluation Metrics:")
     print(f"Average Loss: {total_loss / len(test_loader):.4f}")
     print(f"MAE: {mae:.4f}")
     print(f"RMSE: {rmse:.4f}")
-    print(f"R²: {r2:.4f}")
-    print(f"Target Range: [{inv_targets.min():.4f}, {inv_targets.max():.4f}]")
-    print(f"Prediction Range: [{inv_preds.min():.4f}, {inv_preds.max():.4f}]")
     print(f"Target Mean: {inv_targets.mean():.4f}")
     print(f"Prediction Mean: {inv_preds.mean():.4f}")
 
@@ -100,9 +96,6 @@ def evaluate(model, test_loader, feature_scaler=None, target_scaler=None, fast_n
         'loss': total_loss / len(test_loader),
         'mae': mae,
         'rmse': rmse,
-        'r2': r2,
-        'target_range': [inv_targets.min(), inv_targets.max()],
-        'prediction_range': [inv_preds.min(), inv_preds.max()],
         'target_mean': inv_targets.mean(),
         'prediction_mean': inv_preds.mean()
     }
