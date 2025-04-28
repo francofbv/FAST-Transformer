@@ -1,4 +1,7 @@
 # Model configuration
+'''
+model configuration to allow for default values to be set and convenient hyperparameter tuning
+'''
 class Config:
     '''
     Configuration for the model

@@ -4,6 +4,10 @@ import numpy as np
 import pandas as pd
 from config.config import config
 
+'''
+basic time series transformer model implementation
+'''
+
 class TimeSeriesTransformer(nn.Module):
     '''
     Time Series Transformer

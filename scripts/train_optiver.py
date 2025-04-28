@@ -1,6 +1,5 @@
 import os
 import sys
-import logging
 from datetime import datetime
 from pathlib import Path
 import argparse
@@ -21,6 +20,10 @@ from models.fastnn_transformer import FastNNTransformer
 from utils.optiver_dataloader import OptiverDataset
 from scripts.evaluate import evaluate
 
+'''
+defines the model instantiation, first layer weight matrix, and primary training and validation loop
+'''
+
 def compute_dp_mat(x, r_bar=config.R_BAR):
     '''
     Compute the pretrained dp (diversified projection)matrix for the layer 1 of fast-nn
@@ -35,62 +38,60 @@ def compute_dp_mat(x, r_bar=config.R_BAR):
 
     return dp_matrix
 
-def main(fast_nn=False, data_path='data/train.csv'):
-    """
-    Train a model for Optiver Trading at the Close
+def instantiate_FAST_model(dataset,input_dim=config.INPUT_DIM, d_model=config.D_MODEL, nhead=config.NHEAD, num_layers=config.NUM_LAYERS, r_bar=config.R_BAR, width=config.WIDTH, fast_nn=True):
+    print('loading data')
     
-    Args:
-        fast_nn: Whether to use Fast-NN Transformer model
-        data_path: Path to training data
-    """
+    train_size = int(len(dataset) * (1 - config.VALIDATION_SPLIT))
+    train_dataset, val_dataset = random_split(dataset, [train_size, len(dataset) - train_size])
+    
+    train_loader = DataLoader(train_dataset, batch_size=config.BATCH_SIZE, shuffle=True)
+    val_loader = DataLoader(val_dataset, batch_size=config.BATCH_SIZE, shuffle=False)
+    
+    if fast_nn: # checks if we're using fast-nn transformer or just base transformer
+        dp_mat = compute_dp_mat(train_dataset.dataset.features)  # Compute pretrained dp matrix for Fast-NN
+        model = FastNNTransformer(
+            dp_mat=dp_mat,
+            input_dim=input_dim,
+            d_model=d_model,
+            nhead=nhead,
+            num_layers=num_layers,
+            r_bar=r_bar,
+            width=width
+        )
+
+    else: # this probably doesn't work so maybe don't use it😛
+        model = TimeSeriesTransformer(
+            input_dim=input_dim,
+            d_model=d_model,
+            nhead=nhead,
+            num_layers=num_layers
+        )
+
+    return model, train_loader, val_loader
+
+def train_and_evaluate(dataset, model, train_loader, val_loader, fast_nn=True, learning_rate=config.LEARNING_RATE):
     try:
         # Load and preprocess data
-        logging.info("Loading and preprocessing data...")
-        dataset = OptiverDataset(data_path, seq_len=config.SEQ_LEN)
-        
-        train_size = int(len(dataset) * (1 - config.VALIDATION_SPLIT))
-        train_dataset, val_dataset = random_split(dataset, [train_size, len(dataset) - train_size])
-        
-        train_loader = DataLoader(train_dataset, batch_size=config.BATCH_SIZE, shuffle=True)
-        val_loader = DataLoader(val_dataset, batch_size=config.BATCH_SIZE, shuffle=False)
-        
-        # init model
-        if fast_nn: # checks if we're using fast-nn transformer or just base transformer
-            dp_mat = compute_dp_mat(train_dataset.dataset.features)  # Compute pretrained dp matrix for Fast-NN
-            model = FastNNTransformer(
-                dp_mat=dp_mat,
-                input_dim=config.INPUT_DIM,
-                d_model=config.D_MODEL,
-                nhead=config.NHEAD,
-                num_layers=config.NUM_LAYERS,
-                r_bar=config.R_BAR,
-                width=config.WIDTH
-            )
-        
-        else: # this probably doesn't work so maybe don't use it😛
-            model = TimeSeriesTransformer(
-                input_dim=config.INPUT_DIM,
-                d_model=config.D_MODEL,
-                nhead=config.NHEAD,
-                num_layers=config.NUM_LAYERS
-            )
-        
+
         # Move model to device
         device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         model = model.to(device)
         
         # Initialize optimizer and scheduler (maybe unneccessary since we're using a subset)
-        optimizer = optim.Adam(model.parameters(), lr=config.LEARNING_RATE)
+        optimizer = optim.Adam(model.parameters(), lr=learning_rate)
         scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, 'min', patience=5, factor=0.5) # different from Fast-NN paper, works better w/ transformer probably
         
         # Training loop
-        best_model = {'model': None, 'best_mae': float('inf'), 'epoch': 0, 'val_metrics': None}
+        best_model = {'model': None, 
+                      'best_mae': 999999999, 
+                      'epoch': 0, 
+                      'val_metrics': None}
         
         for epoch in range(config.NUM_EPOCHS):
             # Training 
             model.train()
-            train_loss = 0.0
-            for batch, (X, y) in enumerate(tqdm(train_loader, desc=f'Epoch {epoch+1}/{config.NUM_EPOCHS}')):
+            train_loss = 0
+            for _, (X, y) in enumerate(tqdm(train_loader, desc=f'Epoch {epoch+1}/{config.NUM_EPOCHS}')):
                 X, y = X.to(device), y.to(device)
                 
                 optimizer.zero_grad()
@@ -110,7 +111,7 @@ def main(fast_nn=False, data_path='data/train.csv'):
             
             train_loss /= len(train_loader)
             
-            # Validation 
+            # Val 
             model.eval()
             val_metrics = evaluate(
                 model, 
@@ -143,18 +144,6 @@ def main(fast_nn=False, data_path='data/train.csv'):
         print(f"Best model MAE: {best_model['best_mae']} at epoch {best_model['epoch']}")
         print(f"Best model metrics: {best_model['val_metrics']}")
         
-        return best_model
-        
     except Exception as e:
-        print(f"Error during training: {e}")
+        print('training error 🙃')
         raise
-
-if __name__ == "__main__":
-    # Parse command line args
-    parser = argparse.ArgumentParser(description='Train a model for Optiver Trading at the Close')
-    parser.add_argument('--fast_nn', action='store_true', help='Use Fast-NN Transformer model')
-    parser.add_argument('--data_path', type=str, default='data/train.csv', help='Path to training data')
-    args = parser.parse_args()
-    
-    # Train the model
-    main(fast_nn=args.fast_nn, data_path=args.data_path) 

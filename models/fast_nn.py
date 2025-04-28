@@ -2,6 +2,11 @@ import torch
 from torch import nn
 import numpy as np
 from config.config import config
+'''
+fast-nn model, partially taken from the original FAST-NN repo with some modifications
+
+https://github.com/zhengli09/FAST-NN
+'''
 
 class FactorAugmentedSparseThroughput(nn.Module):
     '''

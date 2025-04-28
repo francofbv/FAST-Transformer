@@ -4,8 +4,17 @@ from sklearn.metrics import mean_absolute_error, root_mean_squared_error
 from sklearn.preprocessing import StandardScaler
 from config.config import config
 
+'''
+primary evaluation method, scales the predictions and ground truth back to the original scale for testing
+'''
+
 def create_scaler_from_params(mean, scale):
-    """Create a scaler from saved parameters"""
+    """
+    Create a scaler from saved parameters
+
+    mean: mean of the scaler
+    scale: scale of the scaler
+    """
     scaler = StandardScaler()
     scaler.mean_ = mean
     scaler.scale_ = scale
@@ -30,72 +39,54 @@ def evaluate(model, test_loader, feature_scaler=None, target_scaler=None, fast_n
     all_targets = []
     total_loss = 0.0
 
+    # from original FAST-NN repo
     with torch.no_grad():
         for X_batch, y_batch in test_loader:
             X_batch = X_batch.to(device)
             y_batch = y_batch.to(device)
             
-            # Forward pass
             preds = model(X_batch)
             
-            # Calculate loss
             loss = torch.nn.MSELoss()(preds, y_batch)
             
             if fast_nn:
-                # Add regularization loss if using Fast-NN
                 reg_loss = model.regularization_loss(model, config.HP_TAU)
                 reg_loss = reg_loss / (config.BATCH_SIZE * config.SEQ_LEN)
                 loss += config.LAMBDA * reg_loss
             
             total_loss += loss.item()
             
-            # Store predictions and targets
             all_preds.extend(preds.cpu().numpy())
             all_targets.extend(y_batch.cpu().numpy())
             
-    # Convert to numpy arrays and reshape
     all_preds = np.array(all_preds)
     all_targets = np.array(all_targets)
     
-    # If predictions are 2D (batch_size, num_stocks), flatten them
-    if len(all_preds.shape) > 1:
-        all_preds = all_preds.reshape(-1)
-        all_targets = all_targets.reshape(-1)
-    
-    # Reshape to 2D arrays for inverse transform
     all_preds = all_preds.reshape(-1, 1)
     all_targets = all_targets.reshape(-1, 1)
 
-    # Inverse transform if scalers are provided
     if target_scaler is not None:
         if isinstance(target_scaler, dict):
-            # If scaler is provided as parameters
             scaler = create_scaler_from_params(target_scaler['mean'], target_scaler['scale'])
         else:
-            # If scaler is provided as StandardScaler object
             scaler = target_scaler
-        inv_preds = scaler.inverse_transform(all_preds)
-        inv_targets = scaler.inverse_transform(all_targets)
+        preds = scaler.inverse_transform(all_preds)
+        ground_truth = scaler.inverse_transform(all_targets)
     else:
-        inv_preds = all_preds
-        inv_targets = all_targets
+        preds = all_preds
+        ground_truth = all_targets
 
-    # Calculate metrics
-    mae = mean_absolute_error(inv_targets, inv_preds)
-    rmse = root_mean_squared_error(inv_targets, inv_preds)
+    mae = mean_absolute_error(ground_truth, preds)
+    rmse = root_mean_squared_error(ground_truth, preds)
     
-    # Print detailed metrics
-    print("\nEvaluation Metrics:")
-    print(f"Average Loss: {total_loss / len(test_loader):.4f}")
-    print(f"MAE: {mae:.4f}")
-    print(f"RMSE: {rmse:.4f}")
-    print(f"Target Mean: {inv_targets.mean():.4f}")
-    print(f"Prediction Mean: {inv_preds.mean():.4f}")
+    print("Eval Metrics:")
+    avg_loss = total_loss / len(test_loader)
+    print(f"Average Loss: {avg_loss}")
+    print(f"MAE: {mae}")
+    print(f"RMSE: {rmse}")
 
     return {
-        'loss': total_loss / len(test_loader),
+        'loss': avg_loss,
         'mae': mae,
         'rmse': rmse,
-        'target_mean': inv_targets.mean(),
-        'prediction_mean': inv_preds.mean()
     }
