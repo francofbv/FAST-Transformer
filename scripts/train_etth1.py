@@ -121,7 +121,7 @@ def main():
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     print(f"Using device: {device}")
     
-    data_path = '/Users/francovidal/Desktop/personal_projects/data/ETTh1.csv'
+    data_path = config.DATA_PATH
     
     # Create results directory
     os.makedirs('checkpoints', exist_ok=True)

@@ -49,4 +49,7 @@ class Config:
     VALIDATION_SPLIT = 0.2
     GRADIENT_CLIP = 1.0
     
+    # Data paths
+    DATA_PATH = '/Users/francovidal/Desktop/personal_projects/data/ETTh1.csv'
+    
 config = Config()

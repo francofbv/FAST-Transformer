@@ -27,8 +27,8 @@ def test_data_loading():
     '''Test that data loading works correctly'''
     print("Testing data loading...")
     
-    # Use the real dataset path
-    data_path = '/Users/francovidal/Desktop/personal_projects/data/ETTh1.csv'
+    # Use the dataset path from config
+    data_path = config.DATA_PATH
     if not os.path.exists('data'):
         os.makedirs('data')
     

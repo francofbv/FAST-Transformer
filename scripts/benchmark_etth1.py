@@ -29,7 +29,7 @@ def load_trained_models(checkpoints_dir='checkpoints'):
     models = {}
     
     # We need to recreate models with proper architectures
-    data_path = '/Users/francovidal/Desktop/personal_projects/data/ETTh1.csv'
+    data_path = config.DATA_PATH
     
     for pred_len in config.PRED_LENS:
         checkpoint_path = os.path.join(checkpoints_dir, f'fast_transformer_etth1_{pred_len}.pth')
@@ -134,7 +134,7 @@ def main():
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     print(f"Using device: {device}")
     
-    data_path = '/Users/francovidal/Desktop/personal_projects/data/ETTh1.csv'
+    data_path = config.DATA_PATH
     
     # Check if data file exists
     if not os.path.exists(data_path):
