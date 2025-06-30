@@ -19,8 +19,10 @@ class FastNNTransformer(nn.Module):
     sparsity: sparsity of the fast-nn model
     rs_mat: random sparse matrix (for fast-nn model)
     '''
-    def __init__(self, dp_mat, input_dim=config.INPUT_DIM, d_model=config.D_MODEL, nhead=config.NHEAD, num_layers=config.NUM_LAYERS, r_bar=config.R_BAR, width=config.WIDTH, sparsity=None, rs_mat=None):
+    def __init__(self, dp_mat, input_dim=config.INPUT_DIM, d_model=config.D_MODEL, nhead=config.NHEAD, num_layers=config.NUM_LAYERS, r_bar=config.R_BAR, width=config.WIDTH, pred_len=96, sparsity=None, rs_mat=None):
         super().__init__()
+        
+        self.pred_len = pred_len
         
         self.fast_nn = FactorAugmentedSparseThroughput(
             input_dim=input_dim,
@@ -35,38 +37,35 @@ class FastNNTransformer(nn.Module):
             input_dim=r_bar + width,
             d_model=d_model,
             nhead=nhead,
-            num_layers=num_layers
+            num_layers=num_layers,
+            output_dim=pred_len  # Multi-step forecasting output
         )
         
     def forward(self, x, is_training=False):
         '''
-        Forward pass
+        Forward pass for ETTh1 time series forecasting
 
-        x: input data
+        x: input data of shape (batch_size, seq_len, num_features)
         is_training: whether the model is in training mode
         '''
-        # Reshape input: (batch_size, seq_len, num_stocks, num_features) -> (batch_size * seq_len * num_stocks, num_features)
-        batch_size, seq_len, num_stocks, num_features = x.shape
+        # For ETTh1: input shape is (batch_size, seq_len, num_features)
+        batch_size, seq_len, num_features = x.shape
+        
+        # Reshape for FAST-NN: (batch_size, seq_len, num_features) -> (batch_size * seq_len, num_features)
         x_reshaped = x.reshape(-1, num_features)
         
-        # fast_nn
+        # Apply FAST-NN feature selection
         x1, x2 = self.fast_nn(x_reshaped, is_training)
         
-        # Reshape back: (batch_size * seq_len * num_stocks, r_bar/width) -> (batch_size, seq_len, num_stocks, r_bar/width)
-        x1 = x1.reshape(batch_size, seq_len, num_stocks, -1)
-        x2 = x2.reshape(batch_size, seq_len, num_stocks, -1)
+        # Reshape back: (batch_size * seq_len, r_bar/width) -> (batch_size, seq_len, r_bar/width)
+        x1 = x1.reshape(batch_size, seq_len, -1)
+        x2 = x2.reshape(batch_size, seq_len, -1)
         
-        # Combine features
-        combined = torch.cat([x1, x2], dim=-1)
+        # Combine FAST-NN outputs
+        combined = torch.cat([x1, x2], dim=-1)  # (batch_size, seq_len, r_bar + width)
         
-        # Reshape for transformer: (batch_size, seq_len, num_stocks, input_dim) -> (batch_size * num_stocks, seq_len, input_dim)
-        combined = combined.reshape(batch_size * num_stocks, seq_len, -1)
-        
-        # transformer
-        output = self.transformer(combined)
-        
-        # Reshape output back: (batch_size * num_stocks, 1) -> (batch_size, num_stocks)
-        output = output.reshape(batch_size, num_stocks)
+        # Apply transformer (now outputs pred_len dimensions directly)
+        output = self.transformer(combined)  # (batch_size, pred_len)
 
         return output
     
@@ -90,3 +89,31 @@ class FastNNTransformer(nn.Module):
             l1_penalty += 0.001 * l2_reg
         
         return l1_penalty
+    
+    def predict_multi_horizon(self, x, horizons=[96, 192, 336, 720]):
+        '''
+        Predict multiple forecasting horizons
+        
+        x: input data of shape (batch_size, seq_len, num_features)
+        horizons: list of prediction horizons
+        '''
+        results = {}
+        
+        # Use the model's current prediction length as base
+        base_pred = self.forward(x)
+        
+        for horizon in horizons:
+            if horizon <= self.pred_len:
+                # Truncate if horizon is smaller than model's prediction length
+                results[horizon] = base_pred[:, :horizon]
+            else:
+                # For longer horizons, we would need autoregressive prediction
+                # For now, repeat the last prediction (this is a simple approach)
+                # In practice, you might want to retrain models for each horizon
+                extended = torch.cat([
+                    base_pred,
+                    base_pred[:, -1:].repeat(1, horizon - self.pred_len)
+                ], dim=1)
+                results[horizon] = extended
+                
+        return results

@@ -147,3 +147,13 @@ def train_and_evaluate(dataset, model, train_loader, val_loader, fast_nn=True, l
     except Exception as e:
         print('training error 🙃')
         raise
+
+if __name__ == "__main__":
+    # Load dataset
+    dataset = OptiverDataset('data/ETTh1.csv', config.SEQ_LEN, config.LAGS)
+    
+    # Instantiate model
+    model, train_loader, val_loader = instantiate_FAST_model(dataset)
+    
+    # Train and evaluate
+    train_and_evaluate(dataset, model, train_loader, val_loader, fast_nn=True)

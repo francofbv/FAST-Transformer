@@ -17,14 +17,14 @@ class TimeSeriesTransformer(nn.Module):
     nhead: number of attention heads
     num_layers: number of transformer layers
     '''
-    def __init__(self, input_dim, d_model=config.D_MODEL, nhead=config.NHEAD, num_layers=config.NUM_LAYERS):
+    def __init__(self, input_dim, d_model=config.D_MODEL, nhead=config.NHEAD, num_layers=config.NUM_LAYERS, output_dim=1):
         super().__init__()
         
         self.input_proj = nn.Linear(input_dim, d_model) # project into models dimension space
         self.pos_embedding = nn.Parameter(torch.randn(config.SEQ_LEN, d_model)) # learnable position embeddings
         encoder_layer = nn.TransformerEncoderLayer(d_model=d_model, nhead=nhead, batch_first=True) # transformer layer w/ multi-head attention, FFN, normalization, residual connections
         self.transformer = nn.TransformerEncoder(encoder_layer, num_layers=num_layers) # stack n_layer encoder layers
-        self.output_proj = nn.Linear(d_model, 1) # output to 1 dimension
+        self.output_proj = nn.Linear(d_model, output_dim) # configurable output dimension
 
     def forward(self, x):
         # x shape: (batch_size, seq_len, input_dim)
@@ -35,6 +35,6 @@ class TimeSeriesTransformer(nn.Module):
         x = self.transformer(x)
         
         x = x[:, -1] # (batch_size, d_model)
-        x = self.output_proj(x)
+        x = self.output_proj(x) # (batch_size, output_dim)
 
         return x

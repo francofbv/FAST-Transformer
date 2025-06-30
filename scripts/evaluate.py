@@ -1,11 +1,11 @@
 import torch 
 import numpy as np
-from sklearn.metrics import mean_absolute_error, root_mean_squared_error
+from sklearn.metrics import mean_absolute_error, mean_squared_error
 from sklearn.preprocessing import StandardScaler
 from config.config import config
 
 '''
-primary evaluation method, scales the predictions and ground truth back to the original scale for testing
+Primary evaluation methods for both Optiver and ETTh1 datasets
 '''
 
 def create_scaler_from_params(mean, scale):
@@ -77,7 +77,7 @@ def evaluate(model, test_loader, feature_scaler=None, target_scaler=None, fast_n
         ground_truth = all_targets
 
     mae = mean_absolute_error(ground_truth, preds)
-    rmse = root_mean_squared_error(ground_truth, preds)
+    rmse = np.sqrt(mean_squared_error(ground_truth, preds))
     
     print("Eval Metrics:")
     avg_loss = total_loss / len(test_loader)
@@ -90,3 +90,98 @@ def evaluate(model, test_loader, feature_scaler=None, target_scaler=None, fast_n
         'mae': mae,
         'rmse': rmse,
     }
+
+def evaluate_etth1(model, test_loader, device):
+    '''
+    Evaluate FAST-Transformer on ETTh1 dataset
+    
+    model: trained model
+    test_loader: test data loader
+    device: torch device
+    '''
+    model.eval()
+    all_preds = []
+    all_targets = []
+    total_loss = 0.0
+    criterion = torch.nn.MSELoss()
+    
+    with torch.no_grad():
+        for X_batch, y_batch in test_loader:
+            X_batch = X_batch.to(device)
+            y_batch = y_batch.to(device)
+            
+            # Forward pass
+            preds = model(X_batch)
+            
+            # Compute loss
+            loss = criterion(preds, y_batch)
+            total_loss += loss.item()
+            
+            # Store predictions and targets
+            all_preds.append(preds.cpu().numpy())
+            all_targets.append(y_batch.cpu().numpy())
+    
+    # Concatenate all predictions and targets
+    all_preds = np.concatenate(all_preds, axis=0)
+    all_targets = np.concatenate(all_targets, axis=0)
+    
+    # Compute metrics
+    mse = mean_squared_error(all_targets, all_preds)
+    mae = mean_absolute_error(all_targets, all_preds)
+    rmse = np.sqrt(mse)
+    avg_loss = total_loss / len(test_loader)
+    
+    print(f"Test Evaluation Results:")
+    print(f"MSE: {mse:.6f}")
+    print(f"MAE: {mae:.6f}")
+    print(f"RMSE: {rmse:.6f}")
+    print(f"Average Loss: {avg_loss:.6f}")
+    
+    return {
+        'mse': mse,
+        'mae': mae,
+        'rmse': rmse,
+        'loss': avg_loss
+    }
+
+def benchmark_etth1_all_horizons(model_dict, test_loaders, device):
+    '''
+    Benchmark FAST-Transformer on all ETTh1 prediction horizons
+    
+    model_dict: dictionary of {pred_len: model} for each horizon
+    test_loaders: dictionary of {pred_len: test_loader} for each horizon  
+    device: torch device
+    '''
+    results = {}
+    
+    print("\nBenchmarking FAST-Transformer on ETTh1")
+    print("=" * 50)
+    
+    for pred_len in config.PRED_LENS:
+        print(f"\nEvaluating prediction horizon: {pred_len}")
+        print("-" * 30)
+        
+        if pred_len not in model_dict or pred_len not in test_loaders:
+            print(f"Model or test loader not found for horizon {pred_len}")
+            continue
+            
+        model = model_dict[pred_len]
+        test_loader = test_loaders[pred_len]
+        
+        # Evaluate model
+        metrics = evaluate_etth1(model, test_loader, device)
+        results[pred_len] = metrics
+    
+    # Print summary table
+    print("\n" + "=" * 60)
+    print("BENCHMARK RESULTS SUMMARY")
+    print("=" * 60)
+    print(f"{'Horizon':<10} {'MSE':<12} {'MAE':<12} {'RMSE':<12}")
+    print("-" * 46)
+    
+    for pred_len in config.PRED_LENS:
+        if pred_len in results:
+            metrics = results[pred_len]
+            print(f"{pred_len:<10} {metrics['mse']:<12.6f} {metrics['mae']:<12.6f} {metrics['rmse']:<12.6f}")
+    
+    return results
