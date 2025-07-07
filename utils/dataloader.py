@@ -36,7 +36,7 @@ class ETTh1Dataset(Dataset):
         train_end = int(total_len * 0.6)    # ~12 months
         val_end = int(total_len * 0.8)      # ~16 months total
         
-        # Apply split
+        # Apply split (no overlap)
         if split == 'train':
             self.df = self.df[:train_end]
         elif split == 'val':
@@ -52,7 +52,7 @@ class ETTh1Dataset(Dataset):
             self.scaler = StandardScaler()
             self.data = self.scaler.fit_transform(self.df[self.feature_cols].values)
         else:
-            # For val/test, we need the training scaler - this will be set externally
+            # For val/test, we need the training scaler - this will be set externally (in training script)
             self.scaler = None
             self.data = self.df[self.feature_cols].values
         

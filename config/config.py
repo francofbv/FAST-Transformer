@@ -50,6 +50,6 @@ class Config:
     GRADIENT_CLIP = 1.0
     
     # Data paths
-    DATA_PATH = '/Users/francovidal/Desktop/personal_projects/data/ETTh1.csv'
+    DATA_PATH = 'data/ETTh1.csv'
     
 config = Config()

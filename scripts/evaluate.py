@@ -125,13 +125,30 @@ def evaluate_etth1(model, test_loader, device):
     all_preds = np.concatenate(all_preds, axis=0)
     all_targets = np.concatenate(all_targets, axis=0)
     
-    # Compute metrics
+    # IMPORTANT: Inverse transform to original scale for accurate metrics
+    # Get the scaler from the test dataset
+    test_dataset = test_loader.dataset
+    if hasattr(test_dataset, 'scaler') and test_dataset.scaler is not None:
+        # Inverse transform predictions and targets
+        # Reshape to 2D for inverse transform
+        preds_2d = all_preds.reshape(-1, 1)
+        targets_2d = all_targets.reshape(-1, 1)
+        
+        # Inverse transform
+        preds_original = test_dataset.scaler.inverse_transform(preds_2d)
+        targets_original = test_dataset.scaler.inverse_transform(targets_2d)
+        
+        # Reshape back
+        all_preds = preds_original.reshape(all_preds.shape)
+        all_targets = targets_original.reshape(all_targets.shape)
+    
+    # Compute metrics on original scale
     mse = mean_squared_error(all_targets, all_preds)
     mae = mean_absolute_error(all_targets, all_preds)
     rmse = np.sqrt(mse)
     avg_loss = total_loss / len(test_loader)
     
-    print(f"Test Evaluation Results:")
+    print(f"Test Evaluation Results (Original Scale):")
     print(f"MSE: {mse:.6f}")
     print(f"MAE: {mae:.6f}")
     print(f"RMSE: {rmse:.6f}")
