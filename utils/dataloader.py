@@ -28,21 +28,23 @@ class ETTh1Dataset(Dataset):
         self.df = self.df.sort_values('date').reset_index(drop=True)
         
         # Standard ETT splits: 12 months train, 4 months val, 4 months test
-        # For hourly data (8760 hours/year), this is approximately:
-        # Train: 12 months = 8760 hours
-        # Val: 4 months = 2920 hours  
-        # Test: 4 months = 2920 hours
-        total_len = len(self.df)
-        train_end = int(total_len * 0.6)    # ~12 months
-        val_end = int(total_len * 0.8)      # ~16 months total
+        # ETTh1 data: 2016-07-01 to 2018-06-26 (about 24 months)
+        # Train: 2016-07-01 to 2017-06-30 (12 months)
+        # Val: 2017-07-01 to 2017-10-31 (4 months)  
+        # Test: 2017-11-01 to 2018-02-28 (4 months)
         
-        # Apply split (no overlap)
+        # Calculate split dates based on calendar months
+        train_end_date = pd.Timestamp('2017-07-01 00:00:00')
+        val_end_date = pd.Timestamp('2017-11-01 00:00:00')
+        test_end_date = pd.Timestamp('2018-03-01 00:00:00')
+        
+        # Apply split based on actual dates
         if split == 'train':
-            self.df = self.df[:train_end]
+            self.df = self.df[self.df['date'] < train_end_date]
         elif split == 'val':
-            self.df = self.df[train_end:val_end]
+            self.df = self.df[(self.df['date'] >= train_end_date) & (self.df['date'] < val_end_date)]
         else:  # test
-            self.df = self.df[val_end:]
+            self.df = self.df[(self.df['date'] >= val_end_date) & (self.df['date'] < test_end_date)]
         
         # Feature columns (all except date)
         self.feature_cols = [col for col in self.df.columns if col != 'date']
