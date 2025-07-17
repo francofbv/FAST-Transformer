@@ -39,11 +39,13 @@ class Config:
     R_BAR = 6      # Reduced proportionally for 7 features (was 12 for 28 features)
     WIDTH = 128    # Reduced for smaller input dimension
     LAMBDA = 4
-    PENALIZE_WEIGHTS = True
+    PENALIZE_WEIGHTS = False
     LAGS = [5, 10, 20, 50]
     
     # ETTh1 specific parameters
-    PRED_LENS = [96, 192, 336, 720]  # Standard ETT forecasting horizons
+    PRED_LENS = [96]  # Testing with just one horizon
+    MULTIVARIATE = False  # Set to True for multivariate forecasting, False for univariate
+    OUTPUT_DIM = 1  # 1 for univariate (OT only), 7 for multivariate (all features)
     
     # Training params 
     VALIDATION_SPLIT = 0.2

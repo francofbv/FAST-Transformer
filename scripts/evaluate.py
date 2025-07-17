@@ -91,13 +91,14 @@ def evaluate(model, test_loader, feature_scaler=None, target_scaler=None, fast_n
         'rmse': rmse,
     }
 
-def evaluate_etth1(model, test_loader, device):
+def evaluate_etth1(model, test_loader, device, multivariate=False):
     '''
     Evaluate FAST-Transformer on ETTh1 dataset
     
     model: trained model
     test_loader: test data loader
     device: torch device
+    multivariate: whether this is multivariate forecasting
     '''
     model.eval()
     all_preds = []
@@ -129,37 +130,81 @@ def evaluate_etth1(model, test_loader, device):
     # Get the scaler from the test dataset
     test_dataset = test_loader.dataset
     if hasattr(test_dataset, 'scaler') and test_dataset.scaler is not None:
-        # Inverse transform predictions and targets
-        # Reshape to 2D for inverse transform
-        preds_2d = all_preds.reshape(-1, 1)
-        targets_2d = all_targets.reshape(-1, 1)
-        
-        # Inverse transform
-        preds_original = test_dataset.scaler.inverse_transform(preds_2d)
-        targets_original = test_dataset.scaler.inverse_transform(targets_2d)
-        
-        # Reshape back
-        all_preds = preds_original.reshape(all_preds.shape)
-        all_targets = targets_original.reshape(all_targets.shape)
+        if multivariate:
+            # For multivariate: all_preds and all_targets have shape (n_samples, pred_len, n_vars)
+            original_shape = all_preds.shape
+            # Reshape to (n_samples * pred_len, n_vars) for inverse transform
+            preds_2d = all_preds.reshape(-1, all_preds.shape[-1])
+            targets_2d = all_targets.reshape(-1, all_targets.shape[-1])
+            
+            # Inverse transform
+            preds_original = test_dataset.scaler.inverse_transform(preds_2d)
+            targets_original = test_dataset.scaler.inverse_transform(targets_2d)
+            
+            # Reshape back to original shape
+            all_preds = preds_original.reshape(original_shape)
+            all_targets = targets_original.reshape(original_shape)
+        else:
+            # For univariate: reshape to 2D for inverse transform
+            preds_2d = all_preds.reshape(-1, 1)
+            targets_2d = all_targets.reshape(-1, 1)
+            
+            # Inverse transform only the target variable (last column typically OT)
+            target_scaler = test_dataset.scaler
+            preds_original = target_scaler.inverse_transform(preds_2d)
+            targets_original = target_scaler.inverse_transform(targets_2d)
+            
+            # Reshape back
+            all_preds = preds_original.reshape(all_preds.shape)
+            all_targets = targets_original.reshape(all_targets.shape)
     
     # Compute metrics on original scale
-    mse = mean_squared_error(all_targets, all_preds)
-    mae = mean_absolute_error(all_targets, all_preds)
+    if multivariate:
+        # For multivariate, compute metrics across all variables
+        mse = mean_squared_error(all_targets.reshape(-1), all_preds.reshape(-1))
+        mae = mean_absolute_error(all_targets.reshape(-1), all_preds.reshape(-1))
+        
+        # Also compute per-variable metrics
+        n_vars = all_preds.shape[-1]
+        var_metrics = {}
+        feature_cols = test_dataset.feature_cols
+        for i in range(n_vars):
+            var_mse = mean_squared_error(all_targets[:, :, i].reshape(-1), all_preds[:, :, i].reshape(-1))
+            var_mae = mean_absolute_error(all_targets[:, :, i].reshape(-1), all_preds[:, :, i].reshape(-1))
+            var_name = feature_cols[i] if i < len(feature_cols) else f'var_{i}'
+            var_metrics[var_name] = {'mse': var_mse, 'mae': var_mae}
+    else:
+        # For univariate
+        mse = mean_squared_error(all_targets, all_preds)
+        mae = mean_absolute_error(all_targets, all_preds)
+        var_metrics = None
+    
     rmse = np.sqrt(mse)
     avg_loss = total_loss / len(test_loader)
     
-    print(f"Test Evaluation Results (Original Scale):")
-    print(f"MSE: {mse:.6f}")
-    print(f"MAE: {mae:.6f}")
-    print(f"RMSE: {rmse:.6f}")
+    forecast_type = "Multivariate" if multivariate else "Univariate"
+    print(f"{forecast_type} Test Evaluation Results (Original Scale):")
+    print(f"Overall MSE: {mse:.6f}")
+    print(f"Overall MAE: {mae:.6f}")
+    print(f"Overall RMSE: {rmse:.6f}")
     print(f"Average Loss: {avg_loss:.6f}")
     
-    return {
+    if multivariate and var_metrics:
+        print("\nPer-variable metrics:")
+        for var_name, metrics in var_metrics.items():
+            print(f"  {var_name}: MSE={metrics['mse']:.6f}, MAE={metrics['mae']:.6f}")
+    
+    result = {
         'mse': mse,
         'mae': mae,
         'rmse': rmse,
         'loss': avg_loss
     }
+    
+    if var_metrics:
+        result['var_metrics'] = var_metrics
+    
+    return result
 
 def benchmark_etth1_all_horizons(model_dict, test_loaders, device):
     '''

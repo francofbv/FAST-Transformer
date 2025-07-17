@@ -29,13 +29,13 @@ def compute_dp_mat(data, r_bar=config.R_BAR):
     dp_matrix = eigen_vectors / np.sqrt(p)
     return dp_matrix
 
-def create_data_loaders(data_path, pred_len):
+def create_data_loaders(data_path, pred_len, multivariate=False):
     '''Create train, validation, and test data loaders for ETTh1'''
     
     # Create datasets
-    train_dataset = ETTh1Dataset(data_path, seq_len=config.SEQ_LEN, pred_len=pred_len, split='train')
-    val_dataset = ETTh1Dataset(data_path, seq_len=config.SEQ_LEN, pred_len=pred_len, split='val')
-    test_dataset = ETTh1Dataset(data_path, seq_len=config.SEQ_LEN, pred_len=pred_len, split='test')
+    train_dataset = ETTh1Dataset(data_path, seq_len=config.SEQ_LEN, pred_len=pred_len, split='train', multivariate=multivariate)
+    val_dataset = ETTh1Dataset(data_path, seq_len=config.SEQ_LEN, pred_len=pred_len, split='val', multivariate=multivariate)
+    test_dataset = ETTh1Dataset(data_path, seq_len=config.SEQ_LEN, pred_len=pred_len, split='test', multivariate=multivariate)
     
     # Share training scaler with val/test datasets
     val_dataset.set_scaler(train_dataset.scaler)
@@ -48,7 +48,7 @@ def create_data_loaders(data_path, pred_len):
     
     return train_loader, val_loader, test_loader, train_dataset
 
-def train_model(model, train_loader, val_loader, pred_len, device):
+def train_model(model, train_loader, val_loader, pred_len, device, multivariate=False):
     '''Train the FAST-Transformer model'''
     
     model = model.to(device)
@@ -59,7 +59,8 @@ def train_model(model, train_loader, val_loader, pred_len, device):
     best_val_loss = float('inf')
     best_model_state = None
     
-    print(f"Training FAST-Transformer for prediction length {pred_len}")
+    forecast_type = "Multivariate" if multivariate else "Univariate"
+    print(f"Training FAST-Transformer for {forecast_type} forecasting, prediction length {pred_len}")
     print(f"Model parameters: {sum(p.numel() for p in model.parameters()):,}")
     
     for epoch in range(config.NUM_EPOCHS):
@@ -114,7 +115,7 @@ def train_model(model, train_loader, val_loader, pred_len, device):
     model.load_state_dict(best_model_state)
     return model, best_val_loss
 
-def main():
+def main(multivariate=False):
     '''Main training function for ETTh1 benchmarking'''
     
     # Setup
@@ -122,6 +123,11 @@ def main():
     print(f"Using device: {device}")
     
     data_path = config.DATA_PATH
+    forecast_type = "multivariate" if multivariate else "univariate"
+    output_dim = config.INPUT_DIM if multivariate else 1
+    
+    print(f"\nTraining FAST-Transformer for {forecast_type} forecasting")
+    print(f"Output dimensions: {output_dim}")
     
     # Create results directory
     os.makedirs('checkpoints', exist_ok=True)
@@ -136,7 +142,7 @@ def main():
         print(f"{'='*50}")
         
         # Create data loaders
-        train_loader, val_loader, test_loader, train_dataset = create_data_loaders(data_path, pred_len)
+        train_loader, val_loader, test_loader, train_dataset = create_data_loaders(data_path, pred_len, multivariate)
         
         # Compute diversified projection matrix from training data
         train_features = []
@@ -156,14 +162,15 @@ def main():
             num_layers=config.NUM_LAYERS,
             r_bar=config.R_BAR,
             width=config.WIDTH,
-            pred_len=pred_len
+            pred_len=pred_len,
+            output_dim=output_dim
         )
         
         # Train model
-        model, best_val_loss = train_model(model, train_loader, val_loader, pred_len, device)
+        model, best_val_loss = train_model(model, train_loader, val_loader, pred_len, device, multivariate)
         
         # Evaluate on test set
-        test_metrics = evaluate_etth1(model, test_loader, device)
+        test_metrics = evaluate_etth1(model, test_loader, device, multivariate)
         
         # Store results
         results[pred_len] = {
@@ -173,7 +180,7 @@ def main():
         }
         
         # Save model
-        model_path = f'checkpoints/fast_transformer_etth1_{pred_len}.pth'
+        model_path = f'checkpoints/fast_transformer_etth1_{forecast_type}_{pred_len}.pth'
         torch.save(model.state_dict(), model_path)
         print(f"Model saved to {model_path}")
         
@@ -195,10 +202,17 @@ def main():
     
     # Save results to file
     import json
-    with open('results/etth1_results.json', 'w') as f:
+    results_file = f'results/etth1_{forecast_type}_results.json'
+    with open(results_file, 'w') as f:
         json.dump(results, f, indent=2)
     
-    print(f"\nResults saved to results/etth1_results.json")
+    print(f"\nResults saved to {results_file}")
 
 if __name__ == "__main__":
-    main()
+    import argparse
+    parser = argparse.ArgumentParser(description='Train FAST-Transformer on ETTh1')
+    parser.add_argument('--multivariate', action='store_true', 
+                       help='Train for multivariate forecasting (default: univariate)')
+    args = parser.parse_args()
+    
+    main(multivariate=args.multivariate)

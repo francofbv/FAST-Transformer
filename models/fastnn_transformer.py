@@ -19,10 +19,11 @@ class FastNNTransformer(nn.Module):
     sparsity: sparsity of the fast-nn model
     rs_mat: random sparse matrix (for fast-nn model)
     '''
-    def __init__(self, dp_mat, input_dim=config.INPUT_DIM, d_model=config.D_MODEL, nhead=config.NHEAD, num_layers=config.NUM_LAYERS, r_bar=config.R_BAR, width=config.WIDTH, pred_len=96, sparsity=None, rs_mat=None):
+    def __init__(self, dp_mat, input_dim=config.INPUT_DIM, d_model=config.D_MODEL, nhead=config.NHEAD, num_layers=config.NUM_LAYERS, r_bar=config.R_BAR, width=config.WIDTH, pred_len=96, output_dim=1, sparsity=None, rs_mat=None):
         super().__init__()
         
         self.pred_len = pred_len
+        self.output_dim = output_dim  # Number of variables to predict (1 for univariate, 7 for multivariate)
         
         self.fast_nn = FactorAugmentedSparseThroughput(
             input_dim=input_dim,
@@ -38,7 +39,7 @@ class FastNNTransformer(nn.Module):
             d_model=d_model,
             nhead=nhead,
             num_layers=num_layers,
-            output_dim=pred_len  # Multi-step forecasting output
+            output_dim=pred_len * output_dim  # Multi-step, multi-variate forecasting output
         )
         
     def forward(self, x, is_training=False):
@@ -64,8 +65,11 @@ class FastNNTransformer(nn.Module):
         # Combine FAST-NN outputs
         combined = torch.cat([x1, x2], dim=-1)  # (batch_size, seq_len, r_bar + width)
         
-        # Apply transformer (now outputs pred_len dimensions directly)
-        output = self.transformer(combined)  # (batch_size, pred_len)
+        # Apply transformer (now outputs pred_len * output_dim dimensions directly)
+        output = self.transformer(combined)  # (batch_size, pred_len * output_dim)
+        
+        # Reshape to (batch_size, pred_len, output_dim) for multivariate forecasting
+        output = output.view(output.shape[0], self.pred_len, self.output_dim)
 
         return output
     
@@ -92,7 +96,7 @@ class FastNNTransformer(nn.Module):
     
     def predict_multi_horizon(self, x, horizons=[96, 192, 336, 720]):
         '''
-        Predict multiple forecasting horizons
+        Predict multiple forecasting horizons for multivariate output
         
         x: input data of shape (batch_size, seq_len, num_features)
         horizons: list of prediction horizons
@@ -100,19 +104,19 @@ class FastNNTransformer(nn.Module):
         results = {}
         
         # Use the model's current prediction length as base
-        base_pred = self.forward(x)
+        base_pred = self.forward(x)  # (batch_size, pred_len, output_dim)
         
         for horizon in horizons:
             if horizon <= self.pred_len:
                 # Truncate if horizon is smaller than model's prediction length
-                results[horizon] = base_pred[:, :horizon]
+                results[horizon] = base_pred[:, :horizon, :]
             else:
                 # For longer horizons, we would need autoregressive prediction
                 # For now, repeat the last prediction (this is a simple approach)
                 # In practice, you might want to retrain models for each horizon
                 extended = torch.cat([
                     base_pred,
-                    base_pred[:, -1:].repeat(1, horizon - self.pred_len)
+                    base_pred[:, -1:, :].repeat(1, horizon - self.pred_len, 1)
                 ], dim=1)
                 results[horizon] = extended
                 
